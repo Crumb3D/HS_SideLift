@@ -1,0 +1,29 @@
+# Live world / lift save — the game writes this on first load
+HSSideLift.json
+HSSideLift.journal.json
+HSSideLift.*.journal.json
+
+# Local build paths (copy Directory.Build.props.example)
+Source/Directory.Build.props
+
+# Compiler output
+Source/obj/
+Source/bin/
+*.dll.new
+
+# Local tooling
+API_NOTES.md
+SUBMIT_7D2DMODS.md
+.codegpt-game.json
+.vs/
+*.user
+*.suo
+
+# Old packs
+*.rar
+HS_SideLift-v*.zip
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

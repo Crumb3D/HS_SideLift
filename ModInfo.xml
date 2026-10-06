@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xml>
+  <Name value="HSSideLift" />
+  <DisplayName value="HS Side Lift" />
+  <Description value="Player-built sideways cabins and boat / ferry pads. Craft the Elevator Handbook (1 paper). Setup tool: hold E. Admin: hssidelift. For 7DTD 3.2. Separate from HS Lift (vertical)." />
+  <Author value="Crumb" />
+  <Version value="1.0.1" />
+  <SkipWithAntiCheat value="true" />
+</xml>

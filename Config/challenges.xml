@@ -1,0 +1,47 @@
+<configs>
+	<append xpath="/challenges">
+
+		<challenge_category name="HSSideLift" title_key="HSSideLiftChallengeCategory" icon="ui_game_symbol_challenge_category2"/>
+
+		<challenge_group category="HSSideLift" name="HSSideLiftHowTo" title_key="HSSideLiftChallengeGroup"
+			reward_text_key="challenge_reward_100xp" link_challenges="true"/>
+
+		<challenge name="HSSideLift_read" title_key="HSSideLiftHandbook" icon="ui_game_symbol_challenge_basics_tutorial_challenge" group="HSSideLiftHowTo"
+			hint="HSSideLiftHintRead"
+			short_description_key="HSSideLiftReadShort" description_key="HSSideLiftReadDesc">
+			<objective type="Craft" item="HSSideLiftHandbook"/>
+			<objective type="UseItem" item="HSSideLiftHandbook" count="1"/>
+		</challenge>
+
+		<challenge name="HSSideLift_tool" title_key="HSSideLiftTool" icon="ui_game_symbol_challenge_basics_craft_tools" group="HSSideLiftHowTo"
+			hint="HSSideLiftHintTool"
+			short_description_key="HSSideLiftToolShort" description_key="HSSideLiftToolDesc">
+			<objective type="Craft" item="HSSideLiftTool"/>
+		</challenge>
+
+		<challenge name="HSSideLift_outsideCraft" title_key="HSSideLiftOutsidePanel" icon="ui_game_symbol_challenge_basics_craft_tools" group="HSSideLiftHowTo"
+			hint="HSSideLiftHintOutsideCraft"
+			short_description_key="HSSideLiftOutsideCraftShort" description_key="HSSideLiftOutsidePanelDesc">
+			<objective type="Craft" item="HSSideLiftOutsidePanel" count="2"/>
+		</challenge>
+
+		<challenge name="HSSideLift_outsidePlace" title_key="HSSideLiftOutsidePlaceTitle" icon="ui_game_symbol_challenge_basics_craft_clothing" group="HSSideLiftHowTo"
+			hint="HSSideLiftHintOutsidePlace"
+			short_description_key="HSSideLiftOutsidePlaceShort" description_key="HSSideLiftOutsidePlaceDesc">
+			<objective type="BlockPlace" block="HSSideLiftOutsidePanel" count="2"/>
+		</challenge>
+
+		<challenge name="HSSideLift_insideCraft" title_key="HSSideLiftInsidePanel" icon="ui_game_symbol_challenge_basics_craft_tools" group="HSSideLiftHowTo"
+			hint="HSSideLiftHintInsideCraft"
+			short_description_key="HSSideLiftInsideCraftShort" description_key="HSSideLiftInsidePanelDesc">
+			<objective type="Craft" item="HSSideLiftInsidePanel"/>
+		</challenge>
+
+		<challenge name="HSSideLift_insidePlace" title_key="HSSideLiftInsidePlaceTitle" icon="ui_game_symbol_challenge_basics_wear_clothing" group="HSSideLiftHowTo"
+			hint="HSSideLiftHintInsidePlace"
+			short_description_key="HSSideLiftInsidePlaceShort" description_key="HSSideLiftInsidePlaceDesc">
+			<objective type="BlockPlace" block="HSSideLiftInsidePanel" count="1"/>
+		</challenge>
+
+	</append>
+</configs>
