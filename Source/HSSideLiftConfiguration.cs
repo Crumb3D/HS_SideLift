@@ -33,6 +33,9 @@ public class HSSideLiftConfigData
     public int ParkY;
     public string Axis = "x";
 
+    // Static lid on the SHAFT / tunnel at the real top of the walls. Half-cube. 0 = none yet. Not used for boats.
+    public int AutoShaftRoofY;
+
     public void SetAlong(int along)
     {
         CurrentY = along;
@@ -142,6 +145,8 @@ public class HSSideLiftFile
     public bool Debug;
     // gb (default): G, 1, 2. us: G shows as 1, 1 as 2. Edit this; restart the game. No rebuild.
     public string FloorScheme = "gb";
+    public bool? AutoPaintInterior;
+    public bool? Music;
     public List<HSSideLiftConfigData> Lifts = new List<HSSideLiftConfigData>();
 }
 
@@ -215,10 +220,22 @@ public static class HSSideLiftConfiguration
         ActiveId = d.ElevatorId;
     }
 
+    static HSSideLiftFile MakeFile()
+    {
+        return new HSSideLiftFile
+        {
+            ActiveId = ActiveId,
+            Debug = HSSideLiftDebug.Enabled,
+            FloorScheme = FileFloorScheme,
+            AutoPaintInterior = HSSideLiftSettings.AutoPaintInterior,
+            Music = HSSideLiftSettings.Music,
+            Lifts = Lifts
+        };
+    }
+
     public static string ToSyncJson()
     {
-        var file = new HSSideLiftFile { ActiveId = ActiveId, Debug = HSSideLiftDebug.Enabled, FloorScheme = FileFloorScheme, Lifts = Lifts };
-        return JsonConvert.SerializeObject(file);
+        return JsonConvert.SerializeObject(MakeFile());
     }
 
     public static void ApplyFromServer(string json)
@@ -228,6 +245,9 @@ public static class HSSideLiftConfiguration
         {
             var settings = new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace };
             var file = JsonConvert.DeserializeObject<HSSideLiftFile>(json, settings) ?? new HSSideLiftFile();
+            HSSideLiftSettings.ApplyFromServer(
+                file.AutoPaintInterior.HasValue ? file.AutoPaintInterior.Value : true,
+                file.Music.HasValue ? file.Music.Value : true);
             Lifts = file.Lifts != null ? file.Lifts : new List<HSSideLiftConfigData>();
             ActiveId = file.ActiveId;
             FileFloorScheme = NormalizeFloorScheme(string.IsNullOrEmpty(file.FloorScheme) ? "gb" : file.FloorScheme);
@@ -276,6 +296,7 @@ public static class HSSideLiftConfiguration
                     ActiveId = file.ActiveId;
                     FileFloorScheme = ResolveFloorScheme(file.FloorScheme, Lifts);
                     Data = new HSSideLiftConfigData { Debug = file.Debug };
+                    HSSideLiftSettings.TakeFromFile(file);
                 }
                 else
                 {
@@ -364,8 +385,7 @@ public static class HSSideLiftConfiguration
             if (HSSideLiftNet.IsRemoteClient) return;
             var dir = RuntimeDir;
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            var file = new HSSideLiftFile { ActiveId = ActiveId, Debug = HSSideLiftDebug.Enabled, FloorScheme = FileFloorScheme, Lifts = Lifts };
-            File.WriteAllText(FilePath, JsonConvert.SerializeObject(file, Formatting.Indented));
+            File.WriteAllText(FilePath, JsonConvert.SerializeObject(MakeFile(), Formatting.Indented));
             HSSideLiftNet.BroadcastConfig();
         }
         catch (Exception e)

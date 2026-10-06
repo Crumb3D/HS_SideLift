@@ -30,6 +30,8 @@ public class ConsoleCmdHSSideLift : ConsoleCmdAbstract
             "HSSideLift floor remove <name>    - forget a floor\n" +
             "HSSideLift floor list             - show floors\n" +
             "HSSideLift scheme gb | us         - floor labels (also FloorScheme in the world-save HSSideLift.json: gb or us). GB default: G, 1, 2. US: G becomes 1\n" +
+            "HSSideLift autopaint on | off     - host: auto-paint cabin on move (every client). Paintbrush still works. Single player uses your local JSON if there is no server\n" +
+            "HSSideLift music on | off         - host: cabin MP3s on/off for every client. Empty assets/music is silent\n" +
             "HSSideLift panel                  - register the aimed outside button panel (floor found from its height)\n" +
             "HSSideLift panel clear            - forget all registered panels\n" +
             "HSSideLift go <floor>             - send the car to a floor\n" +

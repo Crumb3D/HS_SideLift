@@ -81,6 +81,7 @@ public class HSSideLiftController : MonoBehaviour
     int fromY;
     float nextPowerCheck;
     float nextRetry;
+    float nextShaftRoof;
     string errorReason;
     bool recovering;
     bool signsPrimed;
@@ -437,9 +438,10 @@ public class HSSideLiftController : MonoBehaviour
         move.Begin(root, fromY, targetY);
         HSSideLiftCar.RemoveFromWorld(world, fromY, cells);
         LiftState = targetY > fromY ? HSSideLiftState.MovingUp : HSSideLiftState.MovingDown;
+        cabinTrack = HSSideLiftSounds.ChooseTrack();
         StartMoveSound(root);
         nextPowerCheck = Time.time + PowerCheckInterval;
-        HSSideLiftNet.BroadcastMoveStart(D.ElevatorId, fromY, targetY, fromY, cells);
+        HSSideLiftNet.BroadcastMoveStart(D.ElevatorId, fromY, targetY, fromY, cells, cabinTrack);
         HSSideLiftDebug.Info(string.Format("{0}: Y{1} -> Y{2} ({3} blocks, {4})", State, fromY, targetY, cells.Count, source));
     }
 
@@ -607,6 +609,17 @@ public class HSSideLiftController : MonoBehaviour
             }
             TickAutoClose();
             TickReopenIfBlocked();
+            if (LiftState == HSSideLiftState.Idle && Time.time >= nextShaftRoof)
+            {
+                nextShaftRoof = Time.time + 2f;
+                var wRoof = GameManager.Instance != null ? GameManager.Instance.World : null;
+                if (wRoof != null && D != null && D.HasCar && !D.IsVehicleType)
+                {
+                    int before = D.AutoShaftRoofY;
+                    if (HSSideLiftCar.EnsureShaftRoof(wRoof) > 0 || D.AutoShaftRoofY != before)
+                        HSSideLiftConfiguration.Save();
+                }
+            }
             if (preview != null)
             {
                 if (Time.time >= previewUntil) StopPreviewInternal();
@@ -721,12 +734,15 @@ public class HSSideLiftController : MonoBehaviour
 
     string loopPlaying;
     AudioSource customLoop;
+    AudioSource cabinMusic;
+    string cabinTrack;
 
     void StartMoveSound(GameObject carRoot)
     {
         try
         {
             customLoop = HSSideLiftSounds.StartMoveLoop(carRoot);
+            StartCoroutine(HSSideLiftSounds.PlayCabinMusic(carRoot, cabinTrack, src => cabinMusic = src));
             if (customLoop != null) return;
             var name = D.MoveLoopSound;
             var player = GameManager.Instance.World.GetPrimaryPlayer();
@@ -746,6 +762,8 @@ public class HSSideLiftController : MonoBehaviour
         {
             if (customLoop != null) { customLoop.Stop(); Destroy(customLoop); }
             customLoop = null;
+            if (cabinMusic != null) { cabinMusic.Stop(); Destroy(cabinMusic); }
+            cabinMusic = null;
             if (loopPlaying == null) return;
             var player = GameManager.Instance.World.GetPrimaryPlayer();
             if (player != null) Audio.Manager.StopLoopInsidePlayerHead(loopPlaying, player.entityId);
@@ -789,7 +807,7 @@ public class HSSideLiftController : MonoBehaviour
 
     // --- shutdown ---
 
-    public static void BeginRemoteMove(string liftId, int parkedY, int targetY, float curY, List<HSSideLiftCell> captured)
+    public static void BeginRemoteMove(string liftId, int parkedY, int targetY, float curY, List<HSSideLiftCell> captured, string musicFile)
     {
         var d = HSSideLiftConfiguration.ById(liftId);
         if (!Bind(d) || captured == null || captured.Count == 0) return;
@@ -800,6 +818,7 @@ public class HSSideLiftController : MonoBehaviour
         c.StopPreviewInternal();
         c.fromY = parkedY;
         c.cells = captured;
+        c.cabinTrack = musicFile;
         var world = GameManager.Instance != null ? GameManager.Instance.World : null;
         var root = HSSideLiftCar.BuildVisual(world, captured, true, parkedY);
         c.move.Begin(root, parkedY, targetY);
@@ -835,7 +854,7 @@ public class HSSideLiftController : MonoBehaviour
         foreach (var c in all)
         {
             if (c == null || c.Bound == null || !c.IsThisMoving || c.cells == null) continue;
-            HSSideLiftNet.SendMoveStartTo(ci, c.Bound.ElevatorId, c.fromY, c.move.TargetY, c.move.CurY, c.cells);
+            HSSideLiftNet.SendMoveStartTo(ci, c.Bound.ElevatorId, c.fromY, c.move.TargetY, c.move.CurY, c.cells, c.cabinTrack);
         }
     }
 

@@ -21,7 +21,7 @@ public class HSSideLiftMod : IModApi
         {
             HSSideLiftDebug.Error("Could not move lift save out of the mod folder", e);
         }
-        HSSideLiftDebug.Info("Init v1.0.1 - sideways / boat; setup tool hold E; admin: hssidelift");
+        HSSideLiftDebug.Info("Init v1.0.2 - sideways / boat; setup tool hold E; admin: hssidelift");
         HSSideLiftNet.RegisterPackage();
         ModEvents.GameStartDone.RegisterHandler(OnGameStartDone);
         ModEvents.WorldShuttingDown.RegisterHandler(OnWorldShuttingDown);
@@ -40,6 +40,7 @@ public class HSSideLiftMod : IModApi
     {
         try
         {
+            HSSideLiftSettings.Load();
             HSSideLiftConfiguration.Load();
             HSSideLiftController.EnsureCreated();
         }

@@ -8,6 +8,8 @@ Opposite corners of the **3D box**. Floor, plate walls, ceiling. If the top laye
 
 Then **Add Stop** at the far landing. That stop chooses whether the car travels on X or Z.
 
+If the **shaft / tunnel** has no roof, the mod caps it with **concrete half-cubes** at the **real top of the enclosure walls**, covering the whole travel path. Build the well higher and that lid moves up. Blocks sitting on it move with it. Boat ferries do not get a lid.
+
 ## Boat / ferry
 
 Two landings on the lake (docks). You pick the pad size.

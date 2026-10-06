@@ -50,6 +50,21 @@ public static class HSSideLiftSetup
                 if (err != null) return err;
                 return HSSideLiftConfiguration.SelectNearest(p);
             }
+            case "autopaint":
+            case "paint":
+            {
+                bool on;
+                if (!HSSideLiftSettings.TryParseOnOff(arg, out on))
+                    return "Usage: hssidelift autopaint on | off   (host / single player). Now: AutoPaintInterior=" + HSSideLiftSettings.AutoPaintInterior;
+                return HSSideLiftSettings.SetAutoPaint(on);
+            }
+            case "music":
+            {
+                bool on;
+                if (!HSSideLiftSettings.TryParseOnOff(arg, out on))
+                    return "Usage: hssidelift music on | off   (host / single player). Now: Music=" + HSSideLiftSettings.Music;
+                return HSSideLiftSettings.SetMusic(on);
+            }
             case "scheme":
             case "numbering":
             {
@@ -234,6 +249,8 @@ public static class HSSideLiftSetup
                 d.Floors.Add(new HSSideLiftFloor { Name = name, Y = along });
                 RelabelIfStopBelowGround();
                 HSSideLiftConfiguration.SyncFloors();
+                var worldAdd = GameManager.Instance.World;
+                if (worldAdd != null) HSSideLiftCar.EnsureShaftRoof(worldAdd);
                 HSSideLiftConfiguration.Save();
                 var added = HSSideLiftConfiguration.FloorAt(along);
                 var shown = added != null ? HSSideLiftConfiguration.FloorDisplayName(added.Name) : name;
@@ -258,6 +275,8 @@ public static class HSSideLiftSetup
                     d.Floors.Add(new HSSideLiftFloor { Name = "G", Y = AlongFromAim(p) });
                 RelabelWithGroundAt(AlongFromAim(p));
                 HSSideLiftConfiguration.SyncFloors();
+                var worldG = GameManager.Instance.World;
+                if (worldG != null) HSSideLiftCar.EnsureShaftRoof(worldG);
                 HSSideLiftConfiguration.Save();
                 return "Ground Floor set at this height. Other floors were renamed to match.\nFloors: " + HSSideLiftConfiguration.FloorList();
             }
@@ -277,6 +296,8 @@ public static class HSSideLiftSetup
                 if (f.Y == d.CurrentY) return "The car is parked at " + HSSideLiftConfiguration.FloorDisplayName(f.Name) + ". Send it to another floor first.";
                 d.Floors.Remove(f);
                 HSSideLiftConfiguration.SyncFloors();
+                var worldRm = GameManager.Instance.World;
+                if (worldRm != null) HSSideLiftCar.EnsureShaftRoof(worldRm);
                 HSSideLiftConfiguration.Save();
                 return HSSideLiftConfiguration.FloorDisplayName(f.Name) + " removed. Floors: " + HSSideLiftConfiguration.FloorList();
             }
