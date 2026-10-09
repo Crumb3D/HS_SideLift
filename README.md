@@ -4,7 +4,7 @@ Horizontal cabins and boat / ferry pads for **7 Days to Die 3.2**. You build the
 
 Separate from **[HS Lift](https://github.com/Crumb3D/HS_Lift)** (vertical elevators). You can run both.
 
-**Version 1.0.2**. License: [MIT](LICENSE). Author: Crumb.
+**Version 1.0.11**. Dual-load **7DTD 3.2 and 3.3**. License: [MIT](LICENSE). Author: Crumb.
 
 ## Types
 
@@ -23,10 +23,10 @@ Hold the **Side Lift Setup Tool**, aim at a placed block, hold **E**:
 4. **Register Panel** on outside buttons only
 5. Inside panel rides; hold **E** to pick a stop
 
-Admin console: `hssidelift`. Auto-paint and cabin music are host settings (`hssidelift autopaint on|off`, `hssidelift music on|off`). Joining clients follow the host. Single player uses your local `HSSideLiftSettings.json` because you are the host.
+Admin console: `hssidelift`. Paint the cabin with the paintbrush (Metal: Lift Floor, Lift Wall, Lift Ceiling). Cabin music is a host setting (`hssidelift music on|off`). Joining clients follow the host.
 
 Do **not** put `HSSideLift.json` in the Mods folder. The list lives in the world save so dedicated clients keep a matching mod hash.
 
 Needs Harmony (`0_TFP_Harmony`). Restart after installing the DLL.
 
-Cabin paints and music are **host** settings (`hssidelift autopaint on|off`, `hssidelift music on|off`). Put `.mp3` files in `assets/music`. Empty folder is silent.
+Cabin music is a **host** setting (`hssidelift music on|off`). Put `.mp3` files in `assets/music`. Empty folder is silent. Paint the cabin with the paintbrush.

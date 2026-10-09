@@ -48,26 +48,28 @@ public static class HSSideLiftNet
         }
     }
 
+    static Type pkgType;
+
     public static void RegisterPackage()
     {
         try
         {
-            var t = typeof(NetPackageHSSideLift);
+            var t = HSGameVersion.Is33
+                ? HSGameApi.NetPackageType33("NetPackageHSSideLift", typeof(NetPackageHSSideLiftCore))
+                : HSGameApi.NetPackageType32("NetPackageHSSideLift", typeof(NetPackageHSSideLiftCore));
+            pkgType = t;
             var f = typeof(NetPackageManager).GetField("knownPackageTypes", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
             if (f == null) return;
             var dict = f.GetValue(null) as IDictionary;
             if (dict == null) return;
             var args = f.FieldType.GetGenericArguments();
             if (args != null && args.Length >= 1 && args[0] == typeof(string))
-            {
-                if (!dict.Contains(t.Name)) dict[t.Name] = t;
-            }
+                dict[t.Name] = t;
             else if (args != null && args.Length >= 1 && args[0] == typeof(Type))
-            {
-                if (!dict.Contains(t)) dict[t] = t.Name;
-            }
-            else if (!dict.Contains(t.Name)) dict[t.Name] = t;
-            HSSideLiftDebug.Verbose("Registered NetPackageHSSideLift");
+                dict[t] = t.Name;
+            else
+                dict[t.Name] = t;
+            HSSideLiftDebug.Info("Registered " + t.Name + " (" + (HSGameVersion.Is33 ? "3.3 emit" : "3.2 emit") + ")");
         }
         catch (Exception e)
         {
@@ -75,9 +77,10 @@ public static class HSSideLiftNet
         }
     }
 
-    static NetPackageHSSideLift Pkg()
+    static NetPackageHSSideLiftCore Pkg()
     {
-        return NetPackageManager.GetPackage<NetPackageHSSideLift>();
+        if (pkgType == null) RegisterPackage();
+        return (NetPackageHSSideLiftCore)HSGameApi.GetNetPackage(pkgType);
     }
 
     static void ToServer(NetPackage pkg)
@@ -120,11 +123,13 @@ public static class HSSideLiftNet
 
     public static void SendUseInside(Vector3i pos, int floorIndex)
     {
+        HSSideLiftDebug.Info("Send UseInside floor " + floorIndex + " at " + pos);
         ToServer(Pkg().SetupCmd(UseInside, "", "", "", "", floorIndex, 0, true, pos, false, null, 0f));
     }
 
     public static void SendUseFloor(string liftId, int targetY, int floorIndex)
     {
+        HSSideLiftDebug.Info("Send UseFloor " + liftId + " floor " + floorIndex + " Y" + targetY);
         ToServer(Pkg().SetupCmd(UseFloor, "", "", "", liftId ?? "", floorIndex, targetY, false, Vector3i.zero, false, null, 0f));
     }
 
@@ -243,24 +248,24 @@ public static class HSSideLiftNet
     }
 }
 
-public class NetPackageHSSideLift : NetPackage
+public abstract class NetPackageHSSideLiftCore : NetPackage
 {
-    byte kind;
-    string text;
-    string arg;
-    string extra;
-    string liftId;
-    int floorIndex;
-    int targetY;
-    bool hasPos;
-    Vector3i pos;
-    bool flag;
-    float curY;
-    List<HSSideLiftCell> cells;
+    protected byte kind;
+    protected string text;
+    protected string arg;
+    protected string extra;
+    protected string liftId;
+    protected int floorIndex;
+    protected int targetY;
+    protected bool hasPos;
+    protected Vector3i pos;
+    protected bool flag;
+    protected float curY;
+    protected List<HSSideLiftCell> cells;
 
     public override NetPackageDirection PackageDirection { get { return NetPackageDirection.Both; } }
 
-    public NetPackageHSSideLift SetupCmd(byte k, string t, string a, string e, string id, int floor, int y, bool has, Vector3i p, bool f, List<HSSideLiftCell> c, float cy)
+    public NetPackageHSSideLiftCore SetupCmd(byte k, string t, string a, string e, string id, int floor, int y, bool has, Vector3i p, bool f, List<HSSideLiftCell> c, float cy)
     {
         kind = k;
         text = t ?? "";
@@ -377,6 +382,7 @@ public class NetPackageHSSideLift : NetPackage
                     break;
                 case HSSideLiftNet.UseInside:
                     if (!HSSideLiftNet.IsAuthority) return;
+                    HSSideLiftDebug.Info("Got UseInside floor " + floorIndex + " at " + pos);
                     HSSideLiftNet.ReplyTip(Sender, HSSideLiftNet.NotReady(HSSideLiftController.RequestFromInsidePanel(pos, floorIndex)));
                     break;
                 case HSSideLiftNet.UseDoor:
@@ -424,12 +430,6 @@ public class NetPackageHSSideLift : NetPackage
         }
     }
 
-    public override int GetLength()
-    {
-        int n = 64 + (text != null ? text.Length : 0) + (liftId != null ? liftId.Length : 0);
-        if (cells != null) n += cells.Count * 48;
-        return n;
-    }
 }
 
 [HarmonyPatch(typeof(NetPackageManager), "SetupBaseMapping")]

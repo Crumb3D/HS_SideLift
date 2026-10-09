@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using HarmonyLib;
@@ -10,6 +10,8 @@ public class HSSideLiftMod : IModApi
 
     public void InitMod(Mod _modInstance)
     {
+        if (!HSGameVersion.AllowLoad("[HSSideLift]"))
+            return;
         ModPath = _modInstance.Path;
         try
         {
@@ -21,7 +23,7 @@ public class HSSideLiftMod : IModApi
         {
             HSSideLiftDebug.Error("Could not move lift save out of the mod folder", e);
         }
-        HSSideLiftDebug.Info("Init v1.0.2 - sideways / boat; setup tool hold E; admin: hssidelift");
+        HSSideLiftDebug.Info("Init v1.0.14 - one owner per panel; admin: hssidelift");
         HSSideLiftNet.RegisterPackage();
         ModEvents.GameStartDone.RegisterHandler(OnGameStartDone);
         ModEvents.WorldShuttingDown.RegisterHandler(OnWorldShuttingDown);

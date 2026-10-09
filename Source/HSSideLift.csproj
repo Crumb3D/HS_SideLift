@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -14,6 +14,7 @@
     <Deterministic>true</Deterministic>
     <NoStdLib>true</NoStdLib>
     <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\7 Days To Die</GameDir>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">$(GameDir)\7DaysToDie_Data\Managed</ManagedDir>
     <HarmonyDir Condition="'$(HarmonyDir)' == ''">$(GameDir)\Mods\0_TFP_Harmony</HarmonyDir>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -26,15 +27,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="mscorlib">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\mscorlib.dll</HintPath>
+      <HintPath>$(ManagedDir)\mscorlib.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\System.dll</HintPath>
+      <HintPath>$(ManagedDir)\System.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System.Core">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\System.Core.dll</HintPath>
+      <HintPath>$(ManagedDir)\System.Core.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="0Harmony">
@@ -42,52 +43,54 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(ManagedDir)\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="LogLibrary">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\LogLibrary.dll</HintPath>
+      <HintPath>$(ManagedDir)\LogLibrary.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(ManagedDir)\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.AudioModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.AnimationModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.UnityWebRequestModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UnityWebRequestAudioModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.UnityWebRequestAudioModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>$(GameDir)\7DaysToDie_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>$(ManagedDir)\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HSSideLiftMod.cs" />
+    <Compile Include="HSGameVersion.cs" />
+    <Compile Include="HSGameApi.cs" />
     <Compile Include="HSSideLiftDebug.cs" />
     <Compile Include="HSSideLiftConfiguration.cs" />
     <Compile Include="HSSideLiftCommands.cs" />
@@ -105,8 +108,9 @@
     <Compile Include="HSSideLiftFloorMenu.cs" />
     <Compile Include="HSSideLiftActivation.cs" />
     <Compile Include="HSSideLiftPaint.cs" />
-    <Compile Include="HSSideLiftAtlas.cs" />
     <Compile Include="HSSideLiftNet.cs" />
+    <Compile Include="HSSideLiftCabinLights.cs" />
+    <Compile Include="Patches\HSSideLiftLightPatch.cs" />
     <Compile Include="Patches\HSSideLiftDoorPatch.cs" />
     <Compile Include="Patches\HSSideLiftToolPatch.cs" />
     <Compile Include="Blocks\BlockHSSideLiftOutsidePanel.cs" />

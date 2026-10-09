@@ -50,20 +50,20 @@ public static class HSSideLiftSetup
                 if (err != null) return err;
                 return HSSideLiftConfiguration.SelectNearest(p);
             }
-            case "autopaint":
-            case "paint":
-            {
-                bool on;
-                if (!HSSideLiftSettings.TryParseOnOff(arg, out on))
-                    return "Usage: hssidelift autopaint on | off   (host / single player). Now: AutoPaintInterior=" + HSSideLiftSettings.AutoPaintInterior;
-                return HSSideLiftSettings.SetAutoPaint(on);
-            }
             case "music":
             {
                 bool on;
                 if (!HSSideLiftSettings.TryParseOnOff(arg, out on))
                     return "Usage: hssidelift music on | off   (host / single player). Now: Music=" + HSSideLiftSettings.Music;
                 return HSSideLiftSettings.SetMusic(on);
+            }
+            case "flicker":
+            case "flickerlights":
+            {
+                bool on;
+                if (!HSSideLiftSettings.TryParseOnOff(arg, out on))
+                    return "Usage: hssidelift flicker on | off   (host / single player). Now: FlickerLights=" + HSSideLiftSettings.FlickerLights;
+                return HSSideLiftSettings.SetFlickerLights(on);
             }
             case "scheme":
             case "numbering":
@@ -492,10 +492,14 @@ public static class HSSideLiftSetup
         if (!FindPanelNear(world, p, out found))
             return "No Elevator Outside Button Panel at or next to the aimed block (aimed: " + aimedBv.Block.GetBlockName() + " at " + p + "). Inside panels ride with the car and are not registered.";
         p = found;
+        if (!d.HasCar || d.DistOutsideXZ(p.x, p.z) > HSSideLiftConfiguration.NearLiftBlocks)
+            return "Panel at " + p + " is not beside " + d.ElevatorId + "'s car" + (d.HasCar ? " (car at X" + d.MinX + " Z" + d.MinZ + ")" : " (no car set yet)")
+                + ". Set this lift's car corners first, or stand at the right lift.";
         var floor = HSSideLiftConfiguration.FloorForPanel(p);
         if (floor == null) return "Panel at " + p + " is not beside a floor. Add the floor first. Floors: " + HSSideLiftConfiguration.FloorList();
         d.Panels.RemoveAll(e => e.X == p.x && e.Y == p.y && e.Z == p.z);
         d.Panels.Add(new HSSideLiftPanelEntry { Stop = floor.Name, X = p.x, Y = p.y, Z = p.z });
+        HSSideLiftConfiguration.ForgetPanelOnOtherLifts(d, p);
         HSSideLiftConfiguration.SyncFloors();
         HSSideLiftConfiguration.Save();
         return "Panel registered for " + HSSideLiftConfiguration.FloorDisplayName(floor.Name) + ". Wired to power: " + HSSideLiftPower.IsPanelPowered(p)

@@ -4,14 +4,14 @@ using Newtonsoft.Json;
 
 public class HSSideLiftSettingsData
 {
-    public bool AutoPaintInterior = true;
     public bool Music = true;
+    public bool FlickerLights = true;
 }
 
 public static class HSSideLiftSettings
 {
-    public static bool AutoPaintInterior = true;
     public static bool Music = true;
+    public static bool FlickerLights = true;
 
     static string FileName { get { return "HSSideLiftSettings.json"; } }
 
@@ -42,37 +42,30 @@ public static class HSSideLiftSettings
     {
         if (HSSideLiftNet.IsRemoteClient)
         {
-            HSSideLiftDebug.Info("Client: auto-paint / music come from the server, local file ignored");
+            HSSideLiftDebug.Info("Client: music / lights come from the server, local file ignored");
             return;
         }
-        AutoPaintInterior = true;
         Music = true;
+        FlickerLights = true;
         TryRead(UserFile);
         TryRead(SaveFile);
-        WriteHostIfMissing();
-        HSSideLiftDebug.Info("AutoPaintInterior=" + AutoPaintInterior + " Music=" + Music + " (host)");
+        Write(UserFile);
+        Write(SaveFile);
+        HSSideLiftDebug.Info("Music=" + Music + " FlickerLights=" + FlickerLights + " (host)");
     }
 
-    public static void ApplyFromServer(bool autoPaint, bool music)
+    public static void ApplyFromServer(bool music, bool flickerLights)
     {
-        AutoPaintInterior = autoPaint;
         Music = music;
-        HSSideLiftDebug.Info("AutoPaintInterior=" + AutoPaintInterior + " Music=" + Music + " (from server)");
+        FlickerLights = flickerLights;
+        HSSideLiftDebug.Info("Music=" + Music + " FlickerLights=" + FlickerLights + " (from server)");
     }
 
     public static void TakeFromFile(HSSideLiftFile file)
     {
         if (file == null) return;
-        if (file.AutoPaintInterior.HasValue) AutoPaintInterior = file.AutoPaintInterior.Value;
         if (file.Music.HasValue) Music = file.Music.Value;
-    }
-
-    public static string SetAutoPaint(bool on)
-    {
-        if (HSSideLiftNet.IsRemoteClient)
-            return "Auto-paint is host-only. Run this on the server, or in single player.";
-        AutoPaintInterior = on;
-        return Persist("Auto-paint interior is " + (on ? "ON" : "OFF") + ". Host value is used on every client. Paintbrush still works.");
+        if (file.FlickerLights.HasValue) FlickerLights = file.FlickerLights.Value;
     }
 
     public static string SetMusic(bool on)
@@ -80,7 +73,15 @@ public static class HSSideLiftSettings
         if (HSSideLiftNet.IsRemoteClient)
             return "Cabin music is host-only. Run this on the server, or in single player.";
         Music = on;
-        return Persist("Cabin music is " + (on ? "ON" : "OFF") + ". Host value is used on every client. Empty assets/music is always silent.");
+        return Persist("Cabin music is " + (on ? "ON" : "OFF") + ". Host value is used on every client. Empty assets/music is silent.");
+    }
+
+    public static string SetFlickerLights(bool on)
+    {
+        if (HSSideLiftNet.IsRemoteClient)
+            return "Light flicker is host-only. Run this on the server, or in single player.";
+        FlickerLights = on;
+        return Persist("Cabin light flicker is " + (on ? "ON" : "OFF") + ". Host value is used on every client.");
     }
 
     public static bool TryParseOnOff(string arg, out bool on)
@@ -115,19 +116,13 @@ public static class HSSideLiftSettings
         {
             var data = JsonConvert.DeserializeObject<HSSideLiftSettingsData>(File.ReadAllText(path));
             if (data == null) return;
-            AutoPaintInterior = data.AutoPaintInterior;
             Music = data.Music;
+            FlickerLights = data.FlickerLights;
         }
         catch (Exception e)
         {
             HSSideLiftDebug.Warn("Could not read " + path + ": " + e.Message);
         }
-    }
-
-    static void WriteHostIfMissing()
-    {
-        if (!string.IsNullOrEmpty(UserFile) && !File.Exists(UserFile)) Write(UserFile);
-        if (!string.IsNullOrEmpty(SaveFile) && !File.Exists(SaveFile)) Write(SaveFile);
     }
 
     static void Write(string path)
@@ -137,8 +132,8 @@ public static class HSSideLiftSettings
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
         File.WriteAllText(path, JsonConvert.SerializeObject(new HSSideLiftSettingsData
         {
-            AutoPaintInterior = AutoPaintInterior,
-            Music = Music
+            Music = Music,
+            FlickerLights = FlickerLights
         }, Formatting.Indented));
     }
 }

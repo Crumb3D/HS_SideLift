@@ -574,9 +574,12 @@ public static class HSSideLiftCar
         cells = new List<HSSideLiftCell>();
         if (world == null) return "no world";
         if (!D.HasCar) return "car not set (HSSideLift corner1 / corner2)";
-        if (DropInteriorFloorExcludes() + AutoExcludeDoorPlatforms(world) > 0) HSSideLiftConfiguration.Save();
-        EnsureCabinRoof(world, baseY);
-        EnsureShaftRoof(world);
+        if (!HSSideLiftNet.IsRemoteClient)
+        {
+            if (DropInteriorFloorExcludes() + AutoExcludeDoorPlatforms(world) > 0) HSSideLiftConfiguration.Save();
+            EnsureCabinRoof(world, baseY);
+            EnsureShaftRoof(world);
+        }
         for (int dy = 0; dy < (D.IsVehicleType ? Math.Max(2, D.SizeY) : D.SizeY); dy++)
         for (int dx = 0; dx < D.SizeX; dx++)
         for (int dz = 0; dz < D.SizeZ; dz++)
@@ -1021,19 +1024,8 @@ public static class HSSideLiftCar
         return new Vector3i(OriginX(baseY) + c.Dx, D.ParkY + c.Dy, OriginZ(baseY) + c.Dz);
     }
 
-    static HSSideLiftInteriorKind InteriorKind(HSSideLiftCell c)
-    {
-        if (c == null || c.Bv.Block == null) return HSSideLiftInteriorKind.None;
-        if (c.Bv.Block is BlockHSSideLiftInsidePanel || c.Bv.Block is BlockHSSideLiftOutsidePanel) return HSSideLiftInteriorKind.None;
-        if (HSSideLiftDoors.IsElevatorDoor(c.Bv.Block)) return HSSideLiftInteriorKind.None;
-        if (c.Dy <= 0) return HSSideLiftInteriorKind.Floor;
-        if (D.SizeY >= 2 && c.Dy >= D.SizeY - 1) return HSSideLiftInteriorKind.Ceiling;
-        if (c.Dx == 0 || c.Dx == D.SizeX - 1 || c.Dz == 0 || c.Dz == D.SizeZ - 1) return HSSideLiftInteriorKind.Wall;
-        return HSSideLiftInteriorKind.None;
-    }
-
     // Moving copy of the car: block models (with paint) plus mesh colliders on the layer the player controller rides.
-    public static GameObject BuildVisual(World world, List<HSSideLiftCell> cells, bool withColliders, int baseY)
+    public static GameObject BuildVisual(World world, List<HSSideLiftCell> cells, bool withColliders, int baseY, bool parkedLook = false)
     {
         if (GameManager.IsDedicatedServer)
         {
@@ -1044,7 +1036,7 @@ public static class HSSideLiftCar
             empty.transform.position = UnityPos(baseY);
             return empty;
         }
-        var root = new GameObject("HSSideLiftCar_" + D.ElevatorId);
+        var root = new GameObject((parkedLook ? "HSSideLiftParked_" : "HSSideLiftCar_") + D.ElevatorId);
         var rb = root.AddComponent<Rigidbody>();
         rb.isKinematic = true;
         rb.useGravity = false;
@@ -1058,7 +1050,9 @@ public static class HSSideLiftCar
 
         foreach (var c in cells)
         {
-            var holder = new GameObject("cell");
+            if (parkedLook && (HSSideLiftDoors.IsElevatorDoor(c.Bv.Block) || c.Bv.Block is BlockHSSideLiftInsidePanel || c.Bv.Block is BlockHSSideLiftOutsidePanel))
+                continue;
+            var holder = new GameObject(HSSideLiftDoors.IsElevatorDoor(c.Bv.Block) ? "cell_door" : "cell");
             holder.transform.SetParent(root.transform, false);
             holder.transform.localPosition = new Vector3(c.Dx, c.Dy, c.Dz) + off;
             try
@@ -1069,34 +1063,31 @@ public static class HSSideLiftCar
                 {
                     var wp = Pos(c, baseY);
                     var worldPos = new Vector3(wp.x, wp.y, wp.z);
-                    model = ic.CloneModel(world, c.Bv.ToItemValue(), worldPos, holder.transform, _textureFullArray: c.Tex);
+                    model = HSGameApi.CloneBlockModel(ic, world, c.Bv, worldPos, holder.transform, c.Tex);
                 }
                 if (model != null)
                 {
                     models++;
+                    // HSGameApi clones every block unrotated; the placed rotation goes on here once.
                     model.localPosition = Vector3.zero;
                     model.localRotation = c.Bv.Block.shape.GetRotation(c.Bv);
                     foreach (var col in model.GetComponentsInChildren<Collider>(true)) col.enabled = false;
                     foreach (var mb in model.GetComponentsInChildren<MonoBehaviour>(true)) mb.enabled = false;
                     HideFocusHelpers(model);
                     var cellPos = Pos(c, baseY);
-                    // A cloned door animator starts in its default pose and would swing open then shut on departure.
+                    // Sample closed pose once; leave animator off so it does not swing on departure.
                     var te = world.GetTileEntity(cellPos) as TileEntityComposite;
                     if (te != null && te.GetFeature<TEFeatureDoor>() != null)
                         foreach (var anim in model.GetComponentsInChildren<Animator>(true))
                         {
-                            anim.enabled = true;
                             anim.keepAnimatorStateOnDisable = true;
+                            anim.enabled = true;
                             anim.SetBool(AnimatorDoorState.IsOpenHash, false);
                             anim.Play(AnimatorDoorState.CloseHash, 0, 1f);
+                            anim.Update(0f);
+                            anim.enabled = false;
                         }
-                    // Own copies of the maps, taken while the real block still exists. After RemoveFromWorld
-                    // the game unloads the shared textures and the moving copy would go magenta without this.
-                    pin.Keep(model, c.Bv.Block is BlockHSSideLiftOutsidePanel || c.Bv.Block is BlockHSSideLiftInsidePanel);
-                    HSSideLiftSettings.Load();
-                    if (HSSideLiftSettings.AutoPaintInterior)
-                        HSSideLiftPaint.Apply(model, pin, InteriorKind(c));
-                    foreach (var lit in model.GetComponentsInChildren<Light>(true)) lit.enabled = true;
+                    pin.Keep(model);
                 }
             }
             catch (Exception e)
@@ -1105,14 +1096,16 @@ public static class HSSideLiftCar
             }
             try
             {
+                bool cabinLamp = HSSideLiftCabinLights.IsLightBlock(c.Bv.Block);
                 byte lv = c.Bv.Block.GetLightValue(c.Bv);
-                if (lv > 0 && holder.GetComponentInChildren<Light>(true) == null)
+                if ((cabinLamp || lv > 0) && holder.GetComponentInChildren<Light>(true) == null)
                 {
                     var lit = holder.AddComponent<Light>();
                     lit.type = LightType.Point;
                     lit.range = 8f;
-                    lit.intensity = Mathf.Clamp01(lv / 15f) * 1.4f;
-                    lit.color = Color.white;
+                    lit.intensity = cabinLamp ? 1.1f : Mathf.Clamp01(lv / 15f) * 1.4f;
+                    lit.color = new Color(1f, 0.92f, 0.75f);
+                    lit.enabled = false;
                 }
             }
             catch { }
@@ -1134,6 +1127,8 @@ public static class HSSideLiftCar
             }
         }
         HSSideLiftDebug.Verbose(string.Format("Car visual: {0} cells, {1} models, {2} colliders on layer {3}", cells.Count, models, boxCols, layer));
+        var movingLights = root.AddComponent<HSSideLiftMovingCabinLights>();
+        movingLights.LiftId = D.ElevatorId;
         return root;
     }
 
@@ -1175,7 +1170,13 @@ public static class HSSideLiftCar
 
     public static Vector3 UnityPos(float y)
     {
-        return new Vector3(D.IsAxisZ ? D.MinX : y, D.ParkY, D.IsAxisZ ? y : D.MinZ) - Origin.position;
+        return UnityPos(D, y);
+    }
+
+    public static Vector3 UnityPos(HSSideLiftConfigData d, float y)
+    {
+        if (d == null) return Vector3.zero;
+        return new Vector3(d.IsAxisZ ? d.MinX : y, d.ParkY, d.IsAxisZ ? y : d.MinZ) - Origin.position;
     }
 
     // --- crash-safety journal ---
@@ -1384,8 +1385,8 @@ public static class HSSideLiftCar
     }
 }
 
-// Instantiates clone materials. Panel-face maps are duplicated so removing the car does not
-// unload the shared elevator-panel atlas.
+// Instantiates clone materials so the moving car keeps the same look as the placed blocks.
+// Do not blit/rewrite textures — that turned doors/panels black then shiny metal.
 public class HSSideLiftPinnedLooks : MonoBehaviour
 {
     readonly List<UnityEngine.Object> owned = new List<UnityEngine.Object>();
@@ -1395,116 +1396,26 @@ public class HSSideLiftPinnedLooks : MonoBehaviour
         if (obj != null) owned.Add(obj);
     }
 
-    public void Keep(Transform model, bool panel)
+    public void Keep(Transform model)
     {
         if (model == null) return;
         foreach (var r in model.GetComponentsInChildren<Renderer>(true))
         {
             var shared = r.sharedMaterials;
             if (shared == null || shared.Length == 0) continue;
+            var mpb = new MaterialPropertyBlock();
+            r.GetPropertyBlock(mpb);
             var copies = new Material[shared.Length];
             for (int i = 0; i < shared.Length; i++)
             {
                 if (shared[i] == null) continue;
                 var m = new Material(shared[i]) { hideFlags = HideFlags.DontUnloadUnusedAsset };
                 owned.Add(m);
-                foreach (var prop in m.GetTexturePropertyNames())
-                {
-                    var src = m.GetTexture(prop);
-                    if (src != null && panel)
-                    {
-                        var copy = CopyMap(src);
-                        if (copy != null) m.SetTexture(prop, copy);
-                        else FillEmptyMap(m, prop);
-                    }
-                    else if (src == null && panel) FillEmptyMap(m, prop);
-                }
-                if (panel)
-                {
-                    foreach (var colorProp in new[] { "_Color", "_BaseColor", "_TintColor" })
-                        if (m.HasProperty(colorProp)) m.SetColor(colorProp, Color.white);
-                    if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black);
-                }
                 copies[i] = m;
             }
             r.sharedMaterials = copies;
-            if (panel) r.SetPropertyBlock(null);
-            else
-            {
-                var block = new MaterialPropertyBlock();
-                r.GetPropertyBlock(block);
-                r.SetPropertyBlock(block);
-            }
+            r.SetPropertyBlock(mpb);
         }
-    }
-
-    Texture2D CopyMap(Texture src)
-    {
-        try
-        {
-            int w = Mathf.Clamp(src.width, 1, 1024);
-            int h = Mathf.Clamp(src.height, 1, 1024);
-            var rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32);
-            Graphics.Blit(src, rt);
-            var prev = RenderTexture.active;
-            RenderTexture.active = rt;
-            var copy = new Texture2D(w, h, TextureFormat.RGBA32, false, false);
-            copy.ReadPixels(new Rect(0, 0, w, h), 0, 0);
-            copy.Apply(false, false);
-            copy.hideFlags = HideFlags.DontUnloadUnusedAsset;
-            copy.name = "HSSideLiftCopy";
-            RenderTexture.active = prev;
-            RenderTexture.ReleaseTemporary(rt);
-            owned.Add(copy);
-            return copy;
-        }
-        catch (Exception e)
-        {
-            HSSideLiftDebug.Warn("Panel texture copy failed: " + e.Message);
-            return null;
-        }
-    }
-
-    static Texture2D whiteMap;
-    static Texture2D blackMap;
-    static Texture2D flatNormal;
-
-    static void FillEmptyMap(Material m, string prop)
-    {
-        var n = prop.ToLowerInvariant();
-        if (n.Contains("normal") || n.Contains("bump"))
-            m.SetTexture(prop, FlatNormal());
-        else if (n.Contains("emiss"))
-            m.SetTexture(prop, BlackMap());
-        else if (n.Contains("tint") || n.Contains("mask") || n.Contains("rmom"))
-            m.SetTexture(prop, WhiteMap());
-    }
-
-    static Texture2D WhiteMap()
-    {
-        if (whiteMap == null) whiteMap = Make(Color.white);
-        return whiteMap;
-    }
-
-    static Texture2D BlackMap()
-    {
-        if (blackMap == null) blackMap = Make(Color.black);
-        return blackMap;
-    }
-
-    static Texture2D FlatNormal()
-    {
-        if (flatNormal == null) flatNormal = Make(new Color(0.5f, 0.5f, 1f, 0.5f));
-        return flatNormal;
-    }
-
-    static Texture2D Make(Color c)
-    {
-        var t = new Texture2D(4, 4, TextureFormat.RGBA32, false, true);
-        for (int x = 0; x < 4; x++) for (int y = 0; y < 4; y++) t.SetPixel(x, y, c);
-        t.Apply();
-        t.hideFlags = HideFlags.DontUnloadUnusedAsset;
-        return t;
     }
 
     void OnDestroy()

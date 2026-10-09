@@ -55,7 +55,7 @@ public static class HSSideLiftDoors
     {
         if (!D.HasCar || !DoorKindMatches(parentBv.Block)) return false;
         foreach (var p in DoorCells(parentPos, parentBv))
-            if (InShaftRing(p) && p.y >= D.LowerY && p.y <= ShaftTop) return true;
+            if (InShaftRing(p) && p.y >= D.ParkY && p.y <= D.ParkY + D.DoorHeight) return true;
         return false;
     }
 
@@ -88,9 +88,9 @@ public static class HSSideLiftDoors
     {
         var c = HSSideLiftController.Of(D);
         if (c != null && c.IsThisMoving) return false;
-        int hi = D.CurrentY + D.DoorHeight;
+        int hi = D.ParkY + D.DoorHeight;
         foreach (var p in DoorCells(parentPos, bv))
-            if (p.y >= D.CurrentY && p.y < hi) return true;
+            if (p.y >= D.ParkY && p.y < hi) return true;
         return false;
     }
 
@@ -139,7 +139,7 @@ public static class HSSideLiftDoors
                 HSSideLiftDebug.Error("Door " + (open ? "open" : "close") + " failed at " + pos, e);
             }
         }
-        if (changed > 0) HSSideLiftDebug.Verbose((open ? "Opened/shut " : "Closed ") + changed + " lift door(s) for rows Y" + yLo + "-" + yHi);
+        HSSideLiftDebug.Info((open ? "Opened/shut " : "Closed ") + changed + " lift door(s) for rows Y" + yLo + "-" + yHi);
         return changed;
     }
 
@@ -161,7 +161,7 @@ public static class HSSideLiftDoors
         var pbv = world.GetBlock(parent);
         var dir = OutwardDir(parent, pbv);
         if (dir.x == 0 && dir.z == 0) return true;
-        int floorY = D.CurrentY;
+        int floorY = D.ParkY;
         var seen = new HashSet<Vector3i>();
         foreach (var c in DoorCells(parent, pbv))
         {
@@ -223,7 +223,7 @@ public static class HSSideLiftDoors
     public static void OpenAtCar(World world, bool autoClose)
     {
         if (!D.HasCar) return;
-        SetDoors(world, D.CurrentY, D.CurrentY + D.DoorHeight - 1, true);
+        SetDoors(world, D.ParkY, D.ParkY + D.DoorHeight - 1, true);
         HSSideLiftFloorSigns.UpdateToCurrentFloor(world);
         var c = HSSideLiftController.Of(D);
         if (c == null) return;
@@ -237,7 +237,7 @@ public static class HSSideLiftDoors
         if (!D.HasCar) return;
         var c = HSSideLiftController.Of(D);
         if (c != null) c.CancelAutoClose();
-        SetDoors(world, D.CurrentY, D.CurrentY + D.DoorHeight - 1, false);
+        SetDoors(world, D.ParkY, D.ParkY + D.DoorHeight - 1, false);
         if (c != null) c.WatchDoorClose();
     }
 
@@ -251,7 +251,7 @@ public static class HSSideLiftDoors
         if (!D.HasCar) return 0;
         var c = HSSideLiftController.Of(D);
         if (c != null) c.CancelAutoClose();
-        int n = SetDoors(world, D.LowerY, ShaftTop, false);
+        int n = SetDoors(world, D.ParkY, D.ParkY + D.DoorHeight - 1, false);
         if (watchObstruction && c != null) c.WatchDoorClose();
         return n;
     }
@@ -259,7 +259,7 @@ public static class HSSideLiftDoors
     public static bool AnyOpenAtCar(World world)
     {
         if (world == null || !D.HasCar) return false;
-        foreach (var pos in FindDoors(world, D.CurrentY, D.CurrentY + D.DoorHeight - 1))
+        foreach (var pos in FindDoors(world, D.ParkY, D.ParkY + D.DoorHeight - 1))
         {
             var te = world.GetTileEntity(pos) as TileEntityComposite;
             var door = te != null ? te.GetFeature<TEFeatureDoor>() : null;
@@ -281,7 +281,7 @@ public static class HSSideLiftDoors
     {
         why = null;
         if (world == null || !D.HasCar) return false;
-        int yLo = D.CurrentY, yHi = D.CurrentY + D.DoorHeight - 1;
+        int yLo = D.ParkY, yHi = D.ParkY + D.DoorHeight - 1;
         var doors = FindDoors(world, yLo, yHi);
         var openDoors = new List<Vector3i>();
         foreach (var parent in doors)
@@ -318,7 +318,7 @@ public static class HSSideLiftDoors
     {
         why = null;
         if (world == null || !D.HasCar) return false;
-        int yLo = D.CurrentY, yHi = D.CurrentY + D.DoorHeight - 1;
+        int yLo = D.ParkY, yHi = D.ParkY + D.DoorHeight - 1;
         var doors = FindDoors(world, yLo, yHi);
         if (doors.Count == 0) return false;
         var doorCells = new HashSet<Vector3i>();
