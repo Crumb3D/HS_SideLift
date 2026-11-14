@@ -55,7 +55,7 @@ public class ItemActionHSSideLiftTool : ItemAction
         if (!_bReleased) return;
         try
         {
-            var player = _actionData != null && _actionData.invData != null ? _actionData.invData.holdingEntity as EntityPlayerLocal : null;
+            var player = _actionData != null && _actionData.invData != null ? HSInvData.HoldingEntity(_actionData.invData) as EntityPlayerLocal : null;
             if (player != null) GameManager.ShowTooltip(player, Localization.Get("HSSideLiftToolHint"));
         }
         catch (Exception e)
@@ -74,6 +74,7 @@ public class ItemActionHSSideLiftTool : ItemAction
         try
         {
             radial.ResetRadialEntries();
+            HSSideLiftConfiguration.Editing();
             var d = HSSideLiftConfiguration.Data ?? new HSSideLiftConfigData();
             if (d.Panels == null) d.Panels = new System.Collections.Generic.List<HSSideLiftPanelEntry>();
             bool needCorner1 = d.Corner1 == null;

@@ -230,16 +230,19 @@ public static class HSSideLiftCar
         return changes.Count;
     }
 
-    // Open SHAFT / tunnel: half-cube lid at the real top of the enclosure walls, covering the whole travel path. Not boats.
+    // Same rule as the vertical lift: half-cube lid at the top of the walls, only once those walls
+    // reach the cabin. You do not build the ceiling. The lid covers the whole horizontal run.
     public static int EnsureShaftRoof(World world)
     {
         if (world == null || D == null || !D.HasCar || D.IsVehicleType) return 0;
         int x0, z0, x1, z1;
         ShaftEnvelope(out x0, out z0, out x1, out z1);
+        ExpandEnvelopeToTunnel(world, ref x0, ref z0, ref x1, ref z1);
         int cabinTop = D.ParkY + Math.Max(1, D.SizeY);
         int lidY = FindShaftTopY(world, x0, z0, x1, z1);
         if (lidY < cabinTop)
         {
+            ClearHalfCubes(world, x0, z0, x1, z1, D.ParkY + 1, cabinTop + 8);
             if (D.AutoShaftRoofY != 0)
                 ClearShaftRoofLayer(world, D.AutoShaftRoofY, x0, z0, x1, z1);
             D.AutoShaftRoofY = 0;
@@ -260,6 +263,7 @@ public static class HSSideLiftCar
         }
 
         var changes = new List<BlockChangeInfo>();
+        ClearHalfCubes(world, x0, z0, x1, z1, D.ParkY + 1, lidY - 1);
         for (int x = x0; x <= x1; x++)
         for (int z = z0; z <= z1; z++)
         {
@@ -274,8 +278,24 @@ public static class HSSideLiftCar
         if (cargo != null && cargo.Count > 0) PlaceRoofCargo(world, lidY, cargo, x0, z0);
         D.AutoShaftRoofY = lidY;
         if (changes.Count == 0 && (cargo == null || cargo.Count == 0)) return 0;
-        HSSideLiftDebug.Info("Shaft roof (half cube) at Y" + lidY + " (" + changes.Count + " lid, " + (cargo == null ? 0 : cargo.Count) + " on-roof).");
+        HSSideLiftDebug.Info("Shaft roof (half cube) at Y" + lidY + " across the run (" + changes.Count + " lid).");
         return changes.Count + (cargo == null ? 0 : cargo.Count);
+    }
+
+    static void ClearHalfCubes(World world, int x0, int z0, int x1, int z1, int y0, int y1)
+    {
+        if (y1 < y0) return;
+        var changes = new List<BlockChangeInfo>();
+        for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++)
+        for (int z = z0; z <= z1; z++)
+        {
+            var pos = new Vector3i(x, y, z);
+            if (world.GetChunkFromWorldPos(pos) == null) continue;
+            if (!IsShaftRoofPiece(world.GetBlock(pos))) continue;
+            changes.Add(new BlockChangeInfo(pos, BlockValue.Air, MarchingCubes.DensityAir));
+        }
+        if (changes.Count > 0) world.SetBlocksRPC(changes);
     }
 
     static void ShaftEnvelope(out int x0, out int z0, out int x1, out int z1)
@@ -302,6 +322,68 @@ public static class HSSideLiftCar
             x0 = a0;
             x1 = a1 + D.SizeX - 1;
         }
+    }
+
+    // Keep walking along the travel axis while the tunnel still has a wall or ceiling, so the lid is not only the car.
+    static void ExpandEnvelopeToTunnel(World world, ref int x0, ref int z0, ref int x1, ref int z1)
+    {
+        if (D.IsAxisZ)
+        {
+            z0 = WalkTunnel(world, z0, -1, true);
+            z1 = WalkTunnel(world, z1, 1, true);
+        }
+        else
+        {
+            x0 = WalkTunnel(world, x0, -1, false);
+            x1 = WalkTunnel(world, x1, 1, false);
+        }
+    }
+
+    static int WalkTunnel(World world, int start, int step, bool axisZ)
+    {
+        int end = start;
+        int misses = 0;
+        for (int i = 1; i <= 192; i++)
+        {
+            int along = start + step * i;
+            if (!SliceHasShaft(world, along, axisZ))
+            {
+                if (++misses >= 3) break;
+                continue;
+            }
+            misses = 0;
+            end = along;
+        }
+        return end;
+    }
+
+    static bool SliceHasShaft(World world, int along, bool axisZ)
+    {
+        int y0 = D.ParkY + 1;
+        int y1 = D.ParkY + Math.Max(1, D.SizeY);
+        if (axisZ)
+        {
+            int left = D.MinX - 1;
+            int right = D.MinX + D.SizeX;
+            for (int y = y0; y <= y1; y++)
+            {
+                if (IsShaftWallBlock(world, new Vector3i(left, y, along))) return true;
+                if (IsShaftWallBlock(world, new Vector3i(right, y, along))) return true;
+                for (int x = D.MinX; x < D.MinX + D.SizeX; x++)
+                    if (IsShaftWallBlock(world, new Vector3i(x, y, along))) return true;
+            }
+            return false;
+        }
+        int near = D.MinZ - 1;
+        int far = D.MinZ + D.SizeZ;
+        for (int y = y0; y <= y1; y++)
+        {
+            if (IsShaftWallBlock(world, new Vector3i(along, y, near))) return true;
+            if (IsShaftWallBlock(world, new Vector3i(along, y, far))) return true;
+            for (int z = D.MinZ; z < D.MinZ + D.SizeZ; z++)
+                if (IsShaftWallBlock(world, new Vector3i(along, y, z))) return true;
+        }
+        return false;
     }
 
     static bool InShaftEnvelope(int x, int z)
@@ -344,8 +426,13 @@ public static class HSSideLiftCar
     {
         var bv = world.GetBlock(pos);
         if (bv.isair || bv.Block == null) return false;
-        if (IsShaftRoofPiece(bv)) return false;
+        if (IsShaftRoofPiece(bv) || IsTerrainBlock(bv)) return false;
         return true;
+    }
+
+    static bool IsTerrainBlock(BlockValue bv)
+    {
+        return bv.Block != null && bv.Block.shape != null && bv.Block.shape.IsTerrain();
     }
 
     static bool IsShaftRoofPiece(BlockValue bv)

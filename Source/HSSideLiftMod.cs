@@ -23,7 +23,7 @@ public class HSSideLiftMod : IModApi
         {
             HSSideLiftDebug.Error("Could not move lift save out of the mod folder", e);
         }
-        HSSideLiftDebug.Info("Init v1.0.14 - one owner per panel; admin: hssidelift");
+        HSSideLiftDebug.Info("Init v1.0.20 - two stops: press E for the next stop; more than two: hold E; admin: hssidelift");
         HSSideLiftNet.RegisterPackage();
         ModEvents.GameStartDone.RegisterHandler(OnGameStartDone);
         ModEvents.WorldShuttingDown.RegisterHandler(OnWorldShuttingDown);

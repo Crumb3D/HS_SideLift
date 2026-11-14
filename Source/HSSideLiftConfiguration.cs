@@ -121,6 +121,34 @@ public class HSSideLiftConfigData
         return Math.Max(dx, dz);
     }
 
+    // Same box test as DistOutsideXZ, with the car parked at a stop (along is that stop's travel coordinate).
+    public int DistOutsideParkedAt(int along, int x, int z)
+    {
+        if (!HasCar) return int.MaxValue;
+        int minX = IsAxisZ ? MinX : along;
+        int minZ = IsAxisZ ? along : MinZ;
+        int dx = 0, dz = 0;
+        if (x < minX) dx = minX - x;
+        else if (x > minX + SizeX - 1) dx = x - (minX + SizeX - 1);
+        if (z < minZ) dz = minZ - z;
+        else if (z > minZ + SizeZ - 1) dz = z - (minZ + SizeZ - 1);
+        return Math.Max(dx, dz);
+    }
+
+    // Nearest the block gets to this side lift: the car where it is, or the car parked at any stop.
+    public int DistOutsideAnyStop(int x, int z)
+    {
+        int best = DistOutsideXZ(x, z);
+        if (Floors == null) return best;
+        foreach (var f in Floors)
+        {
+            if (f == null) continue;
+            int dist = DistOutsideParkedAt(f.Y, x, z);
+            if (dist < best) best = dist;
+        }
+        return best;
+    }
+
     public bool InOutsideRing(int x, int z)
     {
         int d = DistOutsideXZ(x, z);
@@ -213,11 +241,69 @@ public static class HSSideLiftConfiguration
         HSSideLiftDebug.Info("Copied lift list into this world save.");
     }
 
+    // The side lift the setup tool is editing. Only New Side Lift and Use Side Lift Here call this.
     public static void Use(HSSideLiftConfigData d)
     {
         if (d == null) return;
         Data = d;
         ActiveId = d.ElevatorId;
+    }
+
+    // A door, call button or move. Does not change which side lift is being edited.
+    public static void Operate(HSSideLiftConfigData d)
+    {
+        if (d == null) return;
+        Data = d;
+    }
+
+    public static void Editing()
+    {
+        var d = ById(ActiveId);
+        if (d != null) Data = d;
+    }
+
+    public static string HoldingHud()
+    {
+        var d = ById(ActiveId);
+        int total = Lifts != null ? Lifts.Count : 0;
+        if (d == null) return "Active Side Lift: none - Total: " + total;
+        int stops = d.Floors != null ? d.Floors.Count : 0;
+        int panels = d.Panels != null ? d.Panels.Count : 0;
+        var needingNames = new List<string>();
+        if (d.Floors != null)
+            foreach (var f in d.Floors)
+                if (f != null && (d.Panels == null || !d.Panels.Exists(p => p != null && string.Equals(p.Stop, f.Name, StringComparison.OrdinalIgnoreCase))))
+                    needingNames.Add(FloorDisplayName(f.Name));
+        int needing = needingNames.Count;
+        string needingText = needing == 0 ? "0" : needing + " (" + string.Join(", ", needingNames.ToArray()) + ")";
+        string cabin;
+        if (d.HasCar) cabin = "Yes (" + d.SizeX + "x" + d.SizeY + "x" + d.SizeZ + ")";
+        else
+        {
+            int corners = (d.Corner1 != null ? 1 : 0) + (d.Corner2 != null ? 1 : 0);
+            cabin = "No (" + corners + " of 2 corners)";
+        }
+        string powerProblem;
+        bool powered = HSSideLiftPower.HasWorkingPower(d, out powerProblem);
+        string power = powered ? "Yes" : (string.IsNullOrEmpty(powerProblem) ? "No" : powerProblem);
+        if (power.Length > 90) power = power.Substring(0, 87) + "...";
+        var here = d.Floors != null ? d.Floors.Find(f => f != null && f.Y == d.CurrentY) : null;
+        string car = !d.HasCar ? "not set" : (here != null ? FloorDisplayName(here.Name) : "along " + d.CurrentY + " (not a stop)");
+        var ctrl = HSSideLiftController.Of(d);
+        string state = ctrl != null && ctrl.IsThisMoving ? "Moving" : "Parked";
+        string kind = d.IsBoatType ? "Boat bridge" : "Side cabin";
+        string travel = !d.HasCar ? "not set" : (d.IsAxisZ ? "along Z" : "along X");
+        var setLabel = d.IsBoatType ? "Pad Set" : "Cabin Set";
+        return "Active Side Lift: " + d.ElevatorId + " - Total: " + total
+            + "\nType: " + kind
+            + "\nTravel: " + travel
+            + "\n" + setLabel + ": " + cabin
+            + "\nStops: " + stops
+            + "\nPanels: " + panels
+            + "\nStops Needing Panels: " + needingText
+            + "\nPower: " + power
+            + "\nCar: " + car
+            + "\nState: " + state;
     }
 
     static HSSideLiftFile MakeFile()
@@ -359,8 +445,8 @@ public static class HSSideLiftConfiguration
         d.FloorScheme = FileFloorScheme;
         if (d.Floors.Count == 0 && d.HasCar)
         {
-            d.Floors.Add(new HSSideLiftFloor { Name = "G", Y = d.LowerY });
-            if (d.HasUpper && d.UpperY != d.LowerY) d.Floors.Add(new HSSideLiftFloor { Name = "1", Y = d.UpperY });
+            d.Floors.Add(new HSSideLiftFloor { Name = "1", Y = d.LowerY });
+            if (d.HasUpper && d.UpperY != d.LowerY) d.Floors.Add(new HSSideLiftFloor { Name = "2", Y = d.UpperY });
         }
         if (d.ModelOffset == null || d.ModelOffset.Length != 3) d.ModelOffset = new[] { 0.5f, 0.5f, 0.5f };
         if (d.SpeedBlocksPerSecond <= 0.05f) d.SpeedBlocksPerSecond = 1.5f;
@@ -381,7 +467,6 @@ public static class HSSideLiftConfiguration
                 var i = Lifts.FindIndex(l => l.ElevatorId == Data.ElevatorId);
                 if (i >= 0) Lifts[i] = Data;
                 else if (!Lifts.Contains(Data)) Lifts.Add(Data);
-                ActiveId = Data.ElevatorId;
             }
             if (HSSideLiftNet.IsRemoteClient) return;
             var dir = RuntimeDir;
@@ -537,8 +622,8 @@ public static class HSSideLiftConfiguration
         int bestD = int.MaxValue;
         foreach (var d in Lifts)
         {
-            if (!d.HasCar || !d.YOnShaft(pos.y) || !d.InDoorRing(pos.x, pos.z)) continue;
-            int dist = d.DistOutsideXZ(pos.x, pos.z);
+            if (!d.HasCar || !d.YOnShaft(pos.y) || d.DistOutsideAnyStop(pos.x, pos.z) > d.Reach) continue;
+            int dist = d.DistOutsideAnyStop(pos.x, pos.z);
             if (dist < bestD) { bestD = dist; best = d; }
         }
         return best;
@@ -558,7 +643,7 @@ public static class HSSideLiftConfiguration
         foreach (var d in Lifts)
         {
             if (!d.HasCar) continue;
-            int dist = d.DistOutsideXZ(pos.x, pos.z);
+            int dist = d.DistOutsideAnyStop(pos.x, pos.z);
             if (dist > NearLiftBlocks) continue;
             if (dist < bestD) { bestD = dist; best = d; }
         }
@@ -589,6 +674,9 @@ public static class HSSideLiftConfiguration
         var d = Data;
         d.Floors.RemoveAll(f => f == null || string.IsNullOrEmpty(f.Name));
         d.Floors.Sort((a, b) => a.Y.CompareTo(b.Y));
+        if (!d.IsBoatType)
+            for (int i = 0; i < d.Floors.Count; i++)
+                d.Floors[i].Name = (i + 1).ToString();
         d.HasUpper = d.Floors.Count >= 2;
         if (d.Floors.Count > 0)
         {
@@ -637,28 +725,32 @@ public static class HSSideLiftConfiguration
     public static HSSideLiftFloor FloorForPanel(HSSideLiftConfigData d, Vector3i p)
     {
         if (d == null || d.Floors == null || d.Floors.Count == 0) return null;
+        if (!d.HasCar) return null;
         int along = d.IsAxisZ ? p.z : p.x;
+        int span = Math.Max(1, d.IsAxisZ ? d.SizeZ : d.SizeX);
+        int reach = Math.Max(1, d.Reach);
         HSSideLiftFloor best = null;
         int bestDist = int.MaxValue;
         foreach (var f in d.Floors)
         {
             if (f == null) continue;
-            int dist = Math.Abs(f.Y - along);
+            int origin = f.Y;
+            int end = origin + span - 1;
+            if (along < origin - reach || along > end + reach) continue;
+            int dist = along < origin ? origin - along : (along > end ? along - end : 0);
             if (dist < bestDist)
             {
                 bestDist = dist;
                 best = f;
             }
         }
-        int reach = Math.Max(d.Reach, Math.Max(d.SizeX, d.SizeZ));
-        if (best != null && bestDist > reach) return null;
         return best;
     }
 
     public static string FloorLabel(int y)
     {
         var f = FloorAt(y);
-        return f != null ? FloorDisplayName(f.Name) : "Y" + y + " (between floors)";
+        return f != null ? FloorDisplayName(f.Name) : "Y" + y + " (between stops)";
     }
 
     public static bool IsUsFloorScheme()
@@ -702,29 +794,21 @@ public static class HSSideLiftConfiguration
             || n.Equals("ground", StringComparison.OrdinalIgnoreCase);
     }
 
-    // Wall letter/number for this stored floor name (G stays G in GB, becomes 1 in US).
+    // Wall number for this stop. Stops are 1, 2, 3 along the shaft. Old saves used G for the first one.
     public static string FloorSignToken(string name)
     {
         if (string.IsNullOrEmpty(name)) return "";
         var n = name.Trim();
-        if (IsUsFloorScheme())
-        {
-            if (IsGroundName(n)) return "1";
-            int shifted;
-            if (int.TryParse(n, out shifted) && shifted >= 0)
-            {
-                shifted++;
-                if (shifted > 9) shifted = 9;
-                return shifted.ToString();
-            }
-        }
+        if (IsGroundName(n)) return "1";
+        int num;
+        if (int.TryParse(n, out num) && num >= 0) return num.ToString();
         return n[0].ToString();
     }
 
     // Menu and tooltips. Console still uses the short stored name (G, 1, B1).
     public static string FloorDisplayName(string name)
     {
-        if (string.IsNullOrEmpty(name)) return "Unknown Floor";
+        if (string.IsNullOrEmpty(name)) return "Unknown Stop";
         var n = name.Trim();
         if (Data != null && Data.IsBoatType)
         {
@@ -732,18 +816,16 @@ public static class HSSideLiftConfiguration
             int boatNum;
             if (int.TryParse(n, out boatNum) && boatNum >= 1) return "Dock B";
         }
-        bool us = IsUsFloorScheme();
-        if (IsGroundName(n))
-            return us ? "1st Floor" : "Ground Floor";
+        if (IsGroundName(n)) return "1st Stop";
         if (n.Length >= 2 && (n[0] == 'B' || n[0] == 'b') && char.IsDigit(n[1]))
         {
             int basement;
             if (int.TryParse(n.Substring(1), out basement) && basement > 0)
-                return "Basement " + basement;
+                return "Back Stop " + basement;
         }
         int num;
-        if (int.TryParse(n, out num) && num >= 0)
-            return Ordinal(us ? num + 1 : num) + " Floor";
+        if (int.TryParse(n, out num) && num >= 1)
+            return Ordinal(num) + " Stop";
         return n;
     }
 
@@ -763,7 +845,7 @@ public static class HSSideLiftConfiguration
     public static string FloorList()
     {
         var d = Data;
-        if (d.Floors.Count == 0) return "no floors";
+        if (d.Floors.Count == 0) return "no stops";
         var parts = new List<string>();
         for (int i = d.Floors.Count - 1; i >= 0; i--)
             parts.Add(d.Floors[i].Name + "=Y" + d.Floors[i].Y + (d.Floors[i].Y == d.CurrentY ? "*" : ""));
@@ -776,7 +858,7 @@ public static class HSSideLiftConfiguration
         var car = d.HasCar
             ? string.Format("car {0}x{1}x{2} at X{3} Z{4}, now Y{5}", d.SizeX, d.SizeY, d.SizeZ, d.MinX, d.MinZ, d.CurrentY)
             : "car not set";
-        return string.Format("id={0} type={1} {2}, floors [{3}] {4}, speed {5}, panels {6}, debug {7}",
+        return string.Format("id={0} type={1} {2}, stops [{3}] {4}, speed {5}, panels {6}, debug {7}",
             d.ElevatorId, d.Type, car, FloorList(), d.FloorScheme, d.SpeedBlocksPerSecond, d.Panels.Count, d.Debug);
     }
 }

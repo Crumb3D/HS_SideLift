@@ -18,28 +18,46 @@ public static class HSSideLiftFloorMenu
         if (d == null || d.Floors == null) return list;
         var ctrl = HSSideLiftController.Of(d);
         var moving = ctrl != null && ctrl.IsThisMoving;
+        // Two stops: the only enabled entry is the other stop, so a tap of E goes there.
+        // More than two: this list is the hold-E wheel. A tap is thrown away by the radial patch.
+        if (d.Floors.Count == 2)
+        {
+            int other = OtherFloorIndex(d);
+            if (other >= 0)
+            {
+                var f = d.Floors[other];
+                var text = Prefix + other;
+                SetLabel("blockcommand_" + text, HSSideLiftConfiguration.FloorDisplayName(f.Name));
+                list.Add(new BlockActivationCommand(text, "electric_switch", !moving, false, null));
+            }
+            return list;
+        }
+        int hereIndex = -1;
+        for (int i = 0; i < d.Floors.Count; i++)
+            if (d.Floors[i].Y == d.CurrentY) hereIndex = i;
         for (int i = d.Floors.Count - 1; i >= 0; i--)
         {
+            if (i == hereIndex) continue;
             var f = d.Floors[i];
-            bool here = f.Y == d.CurrentY;
             var text = Prefix + i;
-            SetLabel("blockcommand_" + text, HSSideLiftConfiguration.FloorDisplayName(f.Name) + (here ? " (here)" : ""));
-            list.Add(new BlockActivationCommand(text, "electric_switch", !here && !moving, false, null));
+            SetLabel("blockcommand_" + text, HSSideLiftConfiguration.FloorDisplayName(f.Name));
+            list.Add(new BlockActivationCommand(text, "electric_switch", !moving, false, null));
         }
         return list;
     }
 
-    public static int OtherFloorIndex()
+    public static int OtherFloorIndex(HSSideLiftConfigData d)
     {
-        var d = HSSideLiftConfiguration.Data;
         if (d == null || d.Floors == null || d.Floors.Count != 2) return -1;
         if (d.Floors[0].Y == d.CurrentY) return 1;
         if (d.Floors[1].Y == d.CurrentY) return 0;
         return d.CurrentY < d.Floors[1].Y ? 1 : 0;
     }
 
-    public static string Prompt()
+    public static string Prompt(HSSideLiftConfigData d)
     {
+        if (d != null && d.Floors != null && d.Floors.Count == 2)
+            return Localization.Get("HSSideLiftNextStop");
         return Localization.Get("HSSideLiftChooseFloor");
     }
 

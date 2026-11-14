@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>HS Lift — Elevator Handbook</title>
+  <title>HS Side Lift — Handbook</title>
   <style>
     :root {
       --ink: #1c1a16;
@@ -131,8 +131,8 @@
 <body>
   <div class="wrap">
     <header class="mast">
-      <p class="kicker">7 Days to Die · HS Lift</p>
-      <h1>Elevator Handbook</h1>
+      <p class="kicker">7 Days to Die · HS Side Lift</p>
+      <h1>Side Lift Handbook</h1>
       <p class="sub">You build the car. The mod only moves it. It will not break blocks to pass an obstruction.</p>
     </header>
     <div class="toolbar">
@@ -150,20 +150,20 @@
         <li><a href="#vehicle">Vehicle lift</a></li>
         <li><a href="#build">Plates, sheets, pass-through</a></li>
         <li><a href="#power">Power</a></li>
-        <li><a href="#ride">Calling, floors, doors</a></li>
+        <li><a href="#ride">Calling, stops, doors</a></li>
         <li><a href="#stuck">If it will not move</a></li>
       </ol>
     </nav>
     <main>
-      <p>Craft the <strong>Elevator Handbook</strong> from <strong>1 paper</strong> and use it in-game (not consumed). Same walkthrough: <strong>Journal → Challenges → HS Lift</strong>. After a new <code>HSSideLift.dll</code>, restart the game.</p>
+      <p>Craft the <strong>Side Lift Handbook</strong> from <strong>1 paper</strong> and use it in-game (not consumed). Same walkthrough: <strong>Journal → Challenges → HS Side Lift</strong>. After a new <code>HSSideLift.dll</code>, restart the game.</p>
 
       <h2 id="craft">1. What you craft</h2>
       <table>
         <thead><tr><th>Item</th><th>Where</th><th>What it is</th></tr></thead>
         <tbody>
-          <tr><td>Elevator Handbook</td><td>1 paper, hand craft</td><td>This guide. Use it to read. Not used up.</td></tr>
-          <tr><td>Elevator Setup Tool</td><td>Workbench (electrician)</td><td>Hold it, aim at a <strong>placed</strong> block (wood through steel, not dirt), <strong>hold E</strong>.</td></tr>
-          <tr><td>Outside Button Panel</td><td>Workbench</td><td>One per floor, beside the shaft. Wire <strong>any one</strong> registered panel of that lift to a generator or battery bank.</td></tr>
+          <tr><td>Side Lift Handbook</td><td>1 paper, hand craft</td><td>This guide. Use it to read. Not used up.</td></tr>
+          <tr><td>Side Lift Setup Tool</td><td>Workbench (electrician)</td><td>Hold it, aim at a <strong>placed</strong> block (wood through steel, not dirt), <strong>hold E</strong>.</td></tr>
+          <tr><td>Outside Button Panel</td><td>Workbench</td><td>One per stop, beside the shaft. Register it to that stop. Wire <strong>any one</strong> registered panel of that side lift to a generator or battery bank.</td></tr>
           <tr><td>Inside Button Panel</td><td>Workbench</td><td>Optional. In the car (passenger) or on the pad (vehicle). No wires. Do <strong>not</strong> register it.</td></tr>
         </tbody>
       </table>
@@ -175,8 +175,8 @@
         <li><strong>New Ped Lift</strong> / <strong>New Vehicle Lift</strong> — always a <strong>new</strong> lift. Never overwrites one you already registered.</li>
         <li><strong>Use Lift Here</strong> — bind the aimed (or nearest) shaft.</li>
         <li><strong>Set Corner 1</strong> / <strong>Set Corner 2</strong> — opposite corners. Passenger: the whole 3D cabin. Vehicle: the <strong>floor slab only</strong>, both corners the <strong>same height</strong>.</li>
-        <li><strong>Add Floor</strong> — park the car at that landing, aim at a floor block, name it (G, 1, 2, B1, …).</li>
-        <li><strong>Set Ground</strong> — aim at the ground landing. That height becomes G; floors above become 1, 2, …. The car stays put.</li>
+        <li><strong>Add Stop</strong> — aim at the landing along the shaft. It shows as a stop (1st Stop, 2nd Stop), not a floor. The car does not have to be parked there.</li>
+        <li><strong>Set First Stop</strong> — aim at the landing that should be the first stop. Other stops are renamed to match. The car stays put.</li>
         <li><strong>Register Panel</strong> — <strong>outside</strong> wall buttons only. Never the inside panel.</li>
         <li><strong>Exclude landing</strong> — doorway slab stays put.</li>
       </ol>
@@ -190,7 +190,7 @@
         <li>Cabin door and landing door on the same opening open and close together. A <strong>back set</strong> is optional and follows the others on that floor.</li>
         <li>Locked until the car is here. A locked <strong>outside</strong> door <strong>calls</strong> the car.</li>
         <li><strong>Cabin doors</strong> stay shut if there is <strong>no walkable floor</strong> outside (drop or a wall in your face). Outside landing doors are <em>not</em> locked by that check.</li>
-        <li><strong>Hold E</strong> on the inside panel and pick a floor. A <strong>tap</strong> of E does not send the car.</li>
+        <li>Two stops: <strong>press E</strong> on the inside panel to go to the next stop. More than two stops: <strong>hold E</strong> and pick a stop. A tap does nothing when there are more than two.</li>
         <li>No inside panel: <strong>hold E</strong> on the cabin door while standing in the car. Closing the door does not send the car.</li>
       </ul>
       <p>Players, vehicles, and loot inside the cabin ride with it.</p>
@@ -225,14 +225,14 @@
         <li>Wire <strong>any one</strong> registered outside panel. That powers the whole lift. Other shafts need their own circuit.</li>
       </ul>
 
-      <h2 id="ride">7. Calling, floors, doors</h2>
+      <h2 id="ride">7. Calling, stops, doors</h2>
       <ul>
         <li><strong>Outside button:</strong> tap E to call (or open doors if the car is already here).</li>
-        <li><strong>Inside panel:</strong> hold E, choose a floor. Tap does nothing.</li>
+        <li><strong>Inside panel:</strong> hold E, choose a stop. Tap does nothing.</li>
         <li>The car will not leave while something is in the <strong>doorway</strong>. Sheets and plate doubles do not count as blocked.</li>
         <li>Doors auto-close after <strong>20 seconds</strong> (real time) if the opening is clear.</li>
         <li>Walk out while they are closing: they <strong>open again</strong>, then retry when you are clear.</li>
-        <li><strong>Floor letter:</strong> vanilla wall letter/number within 3 blocks of each outside door. They show the floor the car is on, including while it is passing.</li>
+        <li><strong>Stop letter:</strong> vanilla wall letter/number within 3 blocks of each outside door. They show the stop the car is at, including while it is passing.</li>
       </ul>
 
       <h2 id="stuck">8. If it will not move</h2>
@@ -246,7 +246,7 @@
       </ul>
       <p>Admins: console <code>HSSideLift</code>. <code>HSSideLift debris</code> clears dirt and rubble in the footprint (not the car, doors, panels, or pass-through).</p>
     </main>
-    <footer class="col">HS Lift · open this file from the Mods/HS_SideLift folder · Print dialog: choose “Save as PDF” and a file name such as HS-Lift-Handbook.pdf</footer>
+    <footer class="col">HS Side Lift · open this file from the Mods/HS_SideLift folder · Print dialog: choose “Save as PDF” and a file name such as HS-Side-Lift-Handbook.pdf</footer>
   </div>
   <script>
     function savePdf() {

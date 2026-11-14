@@ -1,6 +1,6 @@
 # HS Lift — Player Handbook
 
-Craft the **Elevator Handbook** from **1 paper** (inventory craft) and use it in-game. It is not used up.
+Craft the **Side Lift Handbook** from **1 paper** (inventory craft) and use it in-game. It is not used up.
 
 The same walkthrough is under **Journal → Challenges → HS Lift**.
 
@@ -14,8 +14,8 @@ You build the car and shaft. HS Lift only **moves** what belongs to that lift. I
 
 | Item | Where | What it is |
 |---|---|---|
-| Elevator Handbook | 1 paper, hand craft | This guide. Use it to read. Not consumed. |
-| Elevator Setup Tool | Workbench after **Wiring 101** (Electrician 25) | Hold it, aim at a **placed** block (wood through steel, **not dirt**), **hold E**. |
+| Side Lift Handbook | 1 paper, hand craft | This guide. Use it to read. Not consumed. |
+| Side Lift Setup Tool | Workbench after **Wiring 101** (Electrician 25) | Hold it, aim at a **placed** block (wood through steel, **not dirt**), **hold E**. |
 | Outside Button Panel | Workbench | One per floor, beside the shaft. Wire **any one** registered panel of that lift to a generator or battery bank. |
 | Inside Button Panel | Workbench | Optional. Goes **in the car** (passenger) or **on the pad** (vehicle). No wires. **Do not register it.** |
 

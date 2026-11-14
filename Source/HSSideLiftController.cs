@@ -36,7 +36,7 @@ public class HSSideLiftController : MonoBehaviour
     public static bool Bind(HSSideLiftConfigData d)
     {
         if (d == null) return false;
-        HSSideLiftConfiguration.Use(d);
+        HSSideLiftConfiguration.Operate(d);
         Ensure(d);
         return true;
     }
@@ -49,7 +49,7 @@ public class HSSideLiftController : MonoBehaviour
 
     void Push()
     {
-        if (Bound != null) HSSideLiftConfiguration.Use(Bound);
+        if (Bound != null) HSSideLiftConfiguration.Operate(Bound);
     }
 
     public static void EnsureCreated()
@@ -196,7 +196,7 @@ public class HSSideLiftController : MonoBehaviour
     // Console up/down: the next floor in that direction.
     public static string RequestMove(bool up, string source)
     {
-        if (!D.HasUpper) return "needs at least two floors (HSSideLift floor add <name>)";
+        if (!D.HasUpper) return "needs at least two stops (HSSideLift floor add <name>)";
         HSSideLiftFloor next = null;
         foreach (var f in D.Floors)
         {
@@ -210,7 +210,7 @@ public class HSSideLiftController : MonoBehaviour
     public static string RequestFloor(string name, string source)
     {
         var f = HSSideLiftConfiguration.FloorByName(name);
-        if (f == null) return "no floor named '" + name + "' (" + HSSideLiftConfiguration.FloorList() + ")";
+        if (f == null) return "no stop named '" + name + "' (" + HSSideLiftConfiguration.FloorList() + ")";
         return RequestMoveTo(f.Y, source);
     }
 
@@ -302,7 +302,7 @@ public class HSSideLiftController : MonoBehaviour
 
     static string RequestFromInside(int floorIndex, string source)
     {
-        if (!D.HasUpper) return "needs at least two floors (HSSideLift floor add <name>)";
+        if (!D.HasUpper) return "needs at least two stops (HSSideLift floor add <name>)";
         if (floorIndex < 0 || floorIndex >= D.Floors.Count) return Localization.Get("HSSideLiftChooseFloor");
         var f = D.Floors[floorIndex];
         return RequestMoveTo(f.Y, source + " -> floor " + f.Name);
@@ -989,7 +989,7 @@ public class HSSideLiftController : MonoBehaviour
             sb.AppendLine("  floor " + p.Stop + " panel " + p.Pos + " wired to power=" + HSSideLiftPower.IsPanelPowered(p.Pos));
         var missing = new List<string>();
         if (!D.HasCar) missing.Add("car (HSSideLift corner1 / corner2)");
-        if (!D.HasUpper) missing.Add("at least two floors (HSSideLift floor add <name>)");
+        if (!D.HasUpper) missing.Add("at least two stops (HSSideLift floor add <name>)");
         if (D.HasCar && HSSideLiftConfiguration.FloorAt(D.CurrentY) == null) missing.Add("car is not at a floor (Y" + D.CurrentY + ")");
         string problem;
         if (!HSSideLiftPower.HasWorkingPower(out problem)) missing.Add(problem);

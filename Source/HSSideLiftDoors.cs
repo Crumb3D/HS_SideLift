@@ -76,11 +76,11 @@ public static class HSSideLiftDoors
         HSSideLiftConfigData owner = null;
         foreach (var d in HSSideLiftConfiguration.Lifts)
         {
-            HSSideLiftConfiguration.Use(d);
+            HSSideLiftConfiguration.Operate(d);
             if (IsLiftDoor(parentPos, parentBv)) { owner = d; break; }
         }
-        if (owner != null) HSSideLiftConfiguration.Use(owner);
-        else if (saved != null) HSSideLiftConfiguration.Use(saved);
+        if (owner != null) HSSideLiftConfiguration.Operate(owner);
+        else if (saved != null) HSSideLiftConfiguration.Operate(saved);
         return owner;
     }
 

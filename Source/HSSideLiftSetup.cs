@@ -16,6 +16,7 @@ public static class HSSideLiftSetup
 
     public static string Execute(string sub, string arg, string extra, EntityPlayerLocal player)
     {
+        HSSideLiftConfiguration.Editing();
         if (HSSideLiftNet.IsRemoteClient && sub != "status" && sub != "list" && sub != "preview")
             return HSSideLiftNet.SendSetup(sub, arg, extra, player);
         if (sub == "floor") return FloorCommand(arg, extra, player);
@@ -76,8 +77,8 @@ public static class HSSideLiftSetup
                 var world = GameManager.Instance.World;
                 if (world != null) HSSideLiftFloorSigns.UpdateToCurrentFloor(world);
                 if (HSSideLiftConfiguration.FileFloorScheme == "us")
-                    return "US floors: G shows as 1, 1 as 2, 2 as 3. Basements stay B. Signs and the floor menu use this; console names stay G/1/2.";
-                return "GB floors: G, 1, 2 (Ground, 1st, 2nd). Signs and the floor menu match.";
+                    return "US stops: G shows as 1st Stop, 1 as 2nd Stop, 2 as 3rd Stop. Stops before the first stay B. Signs and the stop menu use this; console names stay G/1/2.";
+                return "GB stops: G, 1, 2 (First Stop, 1st Stop, 2nd Stop). Signs and the stop menu match.";
             }
             case "type":
             case "new":
@@ -229,7 +230,7 @@ public static class HSSideLiftSetup
         {
             case "":
             case "list":
-                return "Floors (top first, * = car): " + HSSideLiftConfiguration.FloorList();
+                return "Stops (* = car): " + HSSideLiftConfiguration.FloorList();
             case "add":
             {
                 if (HSSideLiftController.IsMoving) return "Lift is moving.";
@@ -241,11 +242,17 @@ public static class HSSideLiftSetup
                 if (!d.HasCar) return "Set the car first (Corner 1, then Corner 2).";
                 if (d.IsBoatType && d.Floors != null && d.Floors.Count >= 2)
                     return "A boat ferry has two docks only (A and B). Remove a dock first if you need to move one.";
-                if (string.IsNullOrEmpty(name) || name.Contains(" ")) name = NextFloorName(AlongFromAim(p));
-                if (HSSideLiftConfiguration.FloorByName(name) != null) return "Floor '" + name + "' already exists. Remove it first.";
-                int along = AlongFromAim(p);
+                int along;
+                var aimErr = PrepareStopAlong(p, out along);
+                if (aimErr != null) return aimErr;
+                if (string.IsNullOrEmpty(name) || name.Contains(" ")) name = NextFloorName(along);
+                if (HSSideLiftConfiguration.FloorByName(name) != null) return "Stop '" + name + "' already exists. Remove it first.";
                 var same = HSSideLiftConfiguration.FloorAt(along);
-                if (same != null) return HSSideLiftConfiguration.FloorDisplayName(same.Name) + " is already at this stop.";
+                if (same != null) return HSSideLiftConfiguration.FloorDisplayName(same.Name) + " is already at this stop. Aim at the next landing further along the shaft.";
+                int span = d.IsAxisZ ? d.SizeZ : d.SizeX;
+                var near = d.Floors.Find(f => f != null && Math.Abs(f.Y - along) < span);
+                if (near != null)
+                    return "Too close to " + HSSideLiftConfiguration.FloorDisplayName(near.Name) + ". The next stop has to be at least one car length further along the shaft (same floor).";
                 d.Floors.Add(new HSSideLiftFloor { Name = name, Y = along });
                 RelabelIfStopBelowGround();
                 HSSideLiftConfiguration.SyncFloors();
@@ -256,7 +263,7 @@ public static class HSSideLiftSetup
                 var shown = added != null ? HSSideLiftConfiguration.FloorDisplayName(added.Name) : name;
                 if (d.IsBoatType)
                     return shown + " set. The pad runs in a straight line between the two docks; a rope through the platform links them.\nStops: " + HSSideLiftConfiguration.FloorList();
-                return shown + " added (car floor at this height).\nFloors: " + HSSideLiftConfiguration.FloorList();
+                return shown + " added along the shaft.\nStops: " + HSSideLiftConfiguration.FloorList();
             }
             case "ground":
             case "g":
@@ -269,16 +276,14 @@ public static class HSSideLiftSetup
                 d = HSSideLiftConfiguration.Data;
                 if (!d.HasCar) return "Set the car first (Corner 1, then Corner 2).";
                 var same = HSSideLiftConfiguration.FloorAt(AlongFromAim(p));
-                if (same != null && string.Equals(same.Name, "G", StringComparison.OrdinalIgnoreCase))
-                    return "First stop is already at this position.\nFloors: " + HSSideLiftConfiguration.FloorList();
-                if (same == null)
-                    d.Floors.Add(new HSSideLiftFloor { Name = "G", Y = AlongFromAim(p) });
-                RelabelWithGroundAt(AlongFromAim(p));
+                if (same != null)
+                    return HSSideLiftConfiguration.FloorDisplayName(same.Name) + " is already at this position.\nStops: " + HSSideLiftConfiguration.FloorList();
+                d.Floors.Add(new HSSideLiftFloor { Name = "1", Y = AlongFromAim(p) });
                 HSSideLiftConfiguration.SyncFloors();
                 var worldG = GameManager.Instance.World;
                 if (worldG != null) HSSideLiftCar.EnsureShaftRoof(worldG);
                 HSSideLiftConfiguration.Save();
-                return "Ground Floor set at this height. Other floors were renamed to match.\nFloors: " + HSSideLiftConfiguration.FloorList();
+                return "Stops numbered 1, 2, 3 along the shaft.\nStops: " + HSSideLiftConfiguration.FloorList();
             }
             case "remove":
             {
@@ -292,17 +297,17 @@ public static class HSSideLiftSetup
                     if (err != null) return err;
                     f = HSSideLiftConfiguration.FloorAt(AlongFromAim(p)) ?? HSSideLiftConfiguration.FloorForPanel(p);
                 }
-                if (f == null) return "Aim at a landing that is a registered floor. Floors: " + HSSideLiftConfiguration.FloorList();
-                if (f.Y == d.CurrentY) return "The car is parked at " + HSSideLiftConfiguration.FloorDisplayName(f.Name) + ". Send it to another floor first.";
+                if (f == null) return "Aim at a landing that is a registered stop. Stops: " + HSSideLiftConfiguration.FloorList();
+                if (f.Y == d.CurrentY) return "The car is parked at " + HSSideLiftConfiguration.FloorDisplayName(f.Name) + ". Send it to another stop first.";
                 d.Floors.Remove(f);
                 HSSideLiftConfiguration.SyncFloors();
                 var worldRm = GameManager.Instance.World;
                 if (worldRm != null) HSSideLiftCar.EnsureShaftRoof(worldRm);
                 HSSideLiftConfiguration.Save();
-                return HSSideLiftConfiguration.FloorDisplayName(f.Name) + " removed. Floors: " + HSSideLiftConfiguration.FloorList();
+                return HSSideLiftConfiguration.FloorDisplayName(f.Name) + " removed. Stops: " + HSSideLiftConfiguration.FloorList();
             }
         }
-        return "Usage: HSSideLift floor list | add <name> | ground | remove <name>";
+        return "Usage: HSSideLift floor list | add <name> | ground | remove <name>  (these are stops along the shaft)";
     }
 
     static bool IsBasementName(string name)
@@ -378,25 +383,65 @@ public static class HSSideLiftSetup
         }
     }
 
+    // World Y is the cabin height and stays the same. Stops step along X or Z, the way floors step along Y on the vertical lift.
+    // A block still beside this car is not a new stop, and it must not flip the travel axis.
+    static string PrepareStopAlong(Vector3i p, out int along)
+    {
+        along = 0;
+        var d = HSSideLiftConfiguration.Data;
+        if (d == null || !d.HasCar) { along = p.x; return null; }
+        int outX = OutsideAxis(p.x, d.MinX, d.SizeX);
+        int outZ = OutsideAxis(p.z, d.MinZ, d.SizeZ);
+        bool xTrip = outX >= d.SizeX && outX >= outZ;
+        bool zTrip = outZ >= d.SizeZ && outZ > outX;
+        if (!TravelCommitted(d))
+        {
+            if (!xTrip && !zTrip)
+            {
+                along = d.IsAxisZ ? d.MinZ : d.MinX;
+                return "That block is still at " + HSSideLiftConfiguration.FloorDisplayName("G") + ". Aim at the next landing further along the shaft. Same floor is right — the stop changes on X or Z, not on height.";
+            }
+            int origin = d.IsAxisZ ? d.MinZ : d.MinX;
+            if (d.Floors != null)
+                d.Floors.RemoveAll(f => f == null || f.Y != origin);
+            d.Axis = xTrip ? "x" : "z";
+            d.SetAlong(d.IsAxisZ ? d.MinZ : d.MinX);
+            if (d.Floors != null)
+                foreach (var f in d.Floors)
+                    if (f != null) f.Y = d.CurrentY;
+        }
+        along = d.IsAxisZ ? p.z : p.x;
+        return null;
+    }
+
+    static bool TravelCommitted(HSSideLiftConfigData d)
+    {
+        if (d.Floors == null || d.Floors.Count < 2) return false;
+        int span = Math.Max(1, d.IsAxisZ ? d.SizeZ : d.SizeX);
+        int min = d.IsAxisZ ? d.MinZ : d.MinX;
+        int max = min + span - 1;
+        foreach (var f in d.Floors)
+        {
+            if (f == null) continue;
+            if (OutsideAxis(f.Y, min, span) >= span) return true;
+            if (f.Y < min - span || f.Y > max + span) return true;
+        }
+        return false;
+    }
+
+    static int OutsideAxis(int v, int min, int size)
+    {
+        int max = min + Math.Max(1, size) - 1;
+        if (v < min) return min - v;
+        if (v > max) return v - max;
+        return 0;
+    }
+
     static int AlongFromAim(Vector3i p)
     {
-        var d = HSSideLiftConfiguration.Data;
-        if (d == null || !d.HasCar) return p.x;
-        int dx = Math.Abs(p.x - d.MinX);
-        int dz = Math.Abs(p.z - d.MinZ);
-        if (d.Floors == null || d.Floors.Count <= 1)
-        {
-            d.Axis = dx >= dz ? "x" : "z";
-            int origin = d.IsAxisZ ? d.MinZ : d.MinX;
-            d.CurrentY = origin;
-            if (d.Floors != null)
-            {
-                foreach (var f in d.Floors)
-                    if (f != null && string.Equals(f.Name, "G", StringComparison.OrdinalIgnoreCase))
-                        f.Y = origin;
-            }
-        }
-        return d.IsAxisZ ? p.z : p.x;
+        int along;
+        PrepareStopAlong(p, out along);
+        return along;
     }
 
     static string NextFloorName(int y)
@@ -447,8 +492,8 @@ public static class HSSideLiftSetup
         d.SetAlong(d.IsAxisZ ? minZ : minX);
         if (HSSideLiftConfiguration.FloorAt(d.CurrentY) == null)
         {
-            var name = "G";
-            for (int i = 2; HSSideLiftConfiguration.FloorByName(name) != null; i++) name = "G" + i;
+            var name = "1";
+            for (int i = 2; HSSideLiftConfiguration.FloorByName(name) != null; i++) name = i.ToString();
             d.Floors.Add(new HSSideLiftFloor { Name = name, Y = d.CurrentY });
         }
         HSSideLiftConfiguration.SyncFloors();
@@ -490,13 +535,13 @@ public static class HSSideLiftSetup
         }
         Vector3i found;
         if (!FindPanelNear(world, p, out found))
-            return "No Elevator Outside Button Panel at or next to the aimed block (aimed: " + aimedBv.Block.GetBlockName() + " at " + p + "). Inside panels ride with the car and are not registered.";
+            return "No Side Lift Outside Button Panel at or next to the aimed block (aimed: " + aimedBv.Block.GetBlockName() + " at " + p + "). Inside panels ride with the car and are not registered.";
         p = found;
-        if (!d.HasCar || d.DistOutsideXZ(p.x, p.z) > HSSideLiftConfiguration.NearLiftBlocks)
-            return "Panel at " + p + " is not beside " + d.ElevatorId + "'s car" + (d.HasCar ? " (car at X" + d.MinX + " Z" + d.MinZ + ")" : " (no car set yet)")
-                + ". Set this lift's car corners first, or stand at the right lift.";
+        if (!d.HasCar)
+            return "Set this side lift's car corners first (Corner 1, then Corner 2).";
         var floor = HSSideLiftConfiguration.FloorForPanel(p);
-        if (floor == null) return "Panel at " + p + " is not beside a floor. Add the floor first. Floors: " + HSSideLiftConfiguration.FloorList();
+        if (floor == null || d.DistOutsideParkedAt(floor.Y, p.x, p.z) > HSSideLiftConfiguration.NearLiftBlocks)
+            return "Panel at " + p + " is not beside a stop on " + d.ElevatorId + ". Add the stop at that landing first, then register the panel next to the stop (the car does not have to be parked there). Stops: " + HSSideLiftConfiguration.FloorList();
         d.Panels.RemoveAll(e => e.X == p.x && e.Y == p.y && e.Z == p.z);
         d.Panels.Add(new HSSideLiftPanelEntry { Stop = floor.Name, X = p.x, Y = p.y, Z = p.z });
         HSSideLiftConfiguration.ForgetPanelOnOtherLifts(d, p);
@@ -527,8 +572,8 @@ public static class HSSideLiftSetup
 
     static void BindAimedLift(Vector3i p)
     {
-        var d = HSSideLiftConfiguration.LiftAt(p) ?? HSSideLiftConfiguration.LiftNearXZ(p);
-        if (d != null) HSSideLiftConfiguration.Use(d);
+        // Aiming at another shaft does not change the side lift being edited.
+        HSSideLiftConfiguration.Editing();
     }
 
     public static string AimedBlock(EntityPlayerLocal player, out Vector3i pos)

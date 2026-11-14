@@ -16,7 +16,7 @@ public class BlockHSSideLiftInsidePanel : Block
             var pos = BlockHSSideLiftOutsidePanel.ParentPos(_blockPos, _blockValue);
             var lift = HSSideLiftConfiguration.LiftForInsidePanel(pos);
             if (lift == null) return own.ToArray();
-            HSSideLiftConfiguration.Use(lift);
+            HSSideLiftConfiguration.Operate(lift);
             own.AddRange(HSSideLiftFloorMenu.Commands(lift));
         }
         catch (Exception e) { HSSideLiftDebug.Error("Inside panel floor list failed", e); }
@@ -35,7 +35,7 @@ public class BlockHSSideLiftInsidePanel : Block
             if (ctrl != null && ctrl.IsThisMoving) return Localization.Get("HSSideLiftBusy");
             var notReady = BlockHSSideLiftOutsidePanel.NotReadyText(lift);
             if (notReady != null) return notReady;
-            return HSSideLiftFloorMenu.Prompt();
+            return HSSideLiftFloorMenu.Prompt(lift);
         }
         catch (Exception e)
         {
@@ -50,7 +50,7 @@ public class BlockHSSideLiftInsidePanel : Block
         HSSideLiftPanelCollider.Ensure(_ebcd, _blockPos);
     }
 
-    // Tap E does nothing. Hold E opens the floor list (command overload below).
+    // Two stops: the radial fires the other stop on a tap. More than two: a tap is ignored.
     public override bool OnBlockActivated(WorldBase _world, Vector3i _blockPos, BlockValue _blockValue, EntityPlayerLocal _player)
     {
         return true;
@@ -70,7 +70,7 @@ public class BlockHSSideLiftInsidePanel : Block
                     GameManager.ShowTooltip(_player, Localization.Get("HSSideLiftUnregistered"));
                 return true;
             }
-            HSSideLiftConfiguration.Use(lift);
+            HSSideLiftConfiguration.Operate(lift);
             int floor = HSSideLiftFloorMenu.Parse(_commandName, lift);
             if (floor < 0) return true;
             var problem = HSSideLiftController.RequestFromInsidePanel(pos, floor);

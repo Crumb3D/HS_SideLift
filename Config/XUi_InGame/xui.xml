@@ -1,0 +1,10 @@
+<configs>
+	<append xpath="/xui/window_group[@name='toolbelt']">
+		<window name="HUDHSSideLift"/>
+	</append>
+	<append xpath="/xui">
+		<window_group name="HSSideLiftHandbook">
+			<window name="HSSideLiftHandbook"/>
+		</window_group>
+	</append>
+</configs>

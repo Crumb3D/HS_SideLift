@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -91,6 +91,7 @@
     <Compile Include="HSSideLiftMod.cs" />
     <Compile Include="HSGameVersion.cs" />
     <Compile Include="HSGameApi.cs" />
+    <Compile Include="HSInvData.cs" />
     <Compile Include="HSSideLiftDebug.cs" />
     <Compile Include="HSSideLiftConfiguration.cs" />
     <Compile Include="HSSideLiftCommands.cs" />
@@ -106,6 +107,9 @@
     <Compile Include="HSSideLiftSettings.cs" />
     <Compile Include="HSSideLiftCable.cs" />
     <Compile Include="HSSideLiftFloorMenu.cs" />
+    <Compile Include="HSSideLiftHud.cs" />
+    <Compile Include="HSSideLiftHandbookWindow.cs" />
+    <Compile Include="ItemActionHSSideLiftHandbook.cs" />
     <Compile Include="HSSideLiftActivation.cs" />
     <Compile Include="HSSideLiftPaint.cs" />
     <Compile Include="HSSideLiftNet.cs" />
@@ -113,6 +117,7 @@
     <Compile Include="Patches\HSSideLiftLightPatch.cs" />
     <Compile Include="Patches\HSSideLiftDoorPatch.cs" />
     <Compile Include="Patches\HSSideLiftToolPatch.cs" />
+    <Compile Include="Patches\HSSideLiftRadialPatch.cs" />
     <Compile Include="Blocks\BlockHSSideLiftOutsidePanel.cs" />
     <Compile Include="Blocks\BlockHSSideLiftInsidePanel.cs" />
   </ItemGroup>

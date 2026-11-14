@@ -36,7 +36,7 @@ public static class HSSideLiftPower
     {
         if (d == null || d.Panels == null || d.Panels.Count == 0)
         {
-            problem = "needs outside button panels registered on at least two floors (have 0)";
+            problem = "needs outside button panels registered on at least two stops (have 0)";
             return false;
         }
         var world = GameManager.Instance.World;
@@ -46,12 +46,12 @@ public static class HSSideLiftPower
         {
             if (world != null && world.GetChunkFromWorldPos(p.Pos) == null)
             {
-                problem = "floor " + p.Stop + " panel at " + p.Pos + " is too far away to check (not loaded)";
+                problem = "stop " + p.Stop + " panel at " + p.Pos + " is too far away to check (not loaded)";
                 return false;
             }
             if (world == null || !(world.GetBlock(p.Pos).Block is BlockHSSideLiftOutsidePanel))
             {
-                problem = "floor " + p.Stop + " panel at " + p.Pos + " is missing (re-register or: HSSideLift panel clear)";
+                problem = "stop " + p.Stop + " panel at " + p.Pos + " is missing (re-register or: HSSideLift panel clear)";
                 return false;
             }
             floors.Add(p.Stop);
@@ -60,7 +60,7 @@ public static class HSSideLiftPower
         floors.Remove("?");
         if (floors.Count < 2)
         {
-            problem = "needs outside button panels registered on at least two floors (have " + floors.Count + ")";
+            problem = "needs outside button panels registered on at least two stops (have " + floors.Count + ")";
             return false;
         }
         if (!anyPowered)

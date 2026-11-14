@@ -22,20 +22,20 @@ public class ConsoleCmdHSSideLift : ConsoleCmdAbstract
             "Admin only. Players: craft/hold the Side Lift Setup Tool and hold E.\n" +
             "Aim at blocks while typing the setup commands.\n" +
             "HSSideLift corner1 | corner2      - mark opposite corners of the car\n" +
-            "HSSideLift type ped | vehicle     - START a new lift. ped = 3D cabin + elevator doors. vehicle = floor platform only + garage/roll-up doors. Never overwrites another lift.\n" +
-            "HSSideLift list                   - list every lift (* = the one you are editing)\n" +
-            "HSSideLift select                 - aim at a lift: make that one the one you are editing\n" +
-            "HSSideLift floor add <name>       - aim at a landing floor block: adds a floor (G is set with the car)\n" +
-            "HSSideLift floor ground           - aim at a landing: that height becomes G. Floors above become 1, 2, …\n" +
-            "HSSideLift floor remove <name>    - forget a floor\n" +
-            "HSSideLift floor list             - show floors\n" +
-            "HSSideLift scheme gb | us         - floor labels (also FloorScheme in the world-save HSSideLift.json: gb or us). GB default: G, 1, 2. US: G becomes 1\n" +
+            "HSSideLift type ped | vehicle     - START a new side lift. ped = sideways cabin. vehicle = boat pad. Never overwrites another side lift.\n" +
+            "HSSideLift list                   - list every side lift (* = the one you are editing)\n" +
+            "HSSideLift select                 - aim at a side lift: make that one the one you are editing\n" +
+            "HSSideLift floor add <name>       - aim at a landing: adds a stop along the shaft (G is set with the car)\n" +
+            "HSSideLift floor ground           - aim at a landing: that position becomes the first stop. Stops past it become 1, 2, …\n" +
+            "HSSideLift floor remove <name>    - forget a stop\n" +
+            "HSSideLift floor list             - show stops\n" +
+            "HSSideLift scheme gb | us         - stop labels (also FloorScheme in the world-save HSSideLift.json: gb or us). GB: First Stop, 1st Stop. US: G becomes 1st Stop\n" +
             "HSSideLift music on | off         - host: cabin MP3s on/off for every client. Empty assets/music is silent\n" +
             "HSSideLift flicker on | off       - host: cabin bulb flicker (JSON FlickerLights, default on)\n" +
-            "HSSideLift panel                  - register the aimed outside button panel (floor found from its height)\n" +
+            "HSSideLift panel                  - register the aimed outside button panel to the stop it sits beside\n" +
             "HSSideLift panel clear            - forget all registered panels\n" +
-            "HSSideLift go <floor>             - send the car to a floor\n" +
-            "HSSideLift up | down              - move the car one floor\n" +
+            "HSSideLift go <stop>              - send the car to a stop\n" +
+            "HSSideLift up | down              - move the car one stop along the shaft\n" +
             "HSSideLift speed <blocks/sec>     - travel speed\n" +
             "HSSideLift preview [off]          - show the moving copy beside the car, no world change\n" +
             "HSSideLift status                 - show setup and what is missing\n" +
